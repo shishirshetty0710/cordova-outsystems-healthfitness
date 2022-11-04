@@ -5,15 +5,16 @@ import HealthKit
 @objc(OSHealthFitness)
 class OSHealthFitness: CordovaImplementation {
     var plugin: HealthFitnessPlugin?
-    var callbackId:String=""
+    var callbackIds:NSMutableDictionary?
     
     override func pluginInitialize() {
         plugin = HealthFitnessPlugin()
+        callbackIds = NSMutableDictionary()
     }
     
     @objc(requestPermissions:)
     func requestPermissions(command: CDVInvokedUrlCommand) {
-        self.callbackId = command.callbackId
+        self.callbackIds!["requestPermissions"] = command.callbackId
         
         let customPermissions = command.arguments[0] as? String ?? ""
         let allVariables = command.arguments[1] as? String ?? ""
@@ -26,35 +27,35 @@ class OSHealthFitness: CordovaImplementation {
         self.plugin?.requestPermissions(customPermissions:customPermissions, variable: variable) { [weak self] authorized, error in
             guard let self = self else { return }
             
-            self.sendResult(result: "", error: !authorized ? error : nil, callBackID: self.callbackId)
+            self.sendResult(result: "", error: !authorized ? error : nil, callBackID: self.callbackIds!["requestPermissions"] as! String)
         }
     }
     
     @objc(writeData:)
     func writeData(command: CDVInvokedUrlCommand) {
-        callbackId = command.callbackId
+        self.callbackIds!["writeData"] = command.callbackId
         
         guard let variable = command.arguments[0] as? String else {
-            return self.sendResult(result: "", error:HealthKitErrors.badParameterType as NSError, callBackID: self.callbackId)
+            return self.sendResult(result: "", error:HealthKitErrors.badParameterType as NSError, callBackID: self.callbackIds!["writeData"] as! String)
         }
         
         guard let value = command.arguments[1] as? Double else {
-            return  self.sendResult(result: "", error:HealthKitErrors.badParameterType as NSError, callBackID: self.callbackId)
+            return  self.sendResult(result: "", error:HealthKitErrors.badParameterType as NSError, callBackID: self.callbackIds!["writeData"] as! String)
         }
         
         plugin?.writeData(variable: variable, value: value) { success,error in
             if let err = error {
-                self.sendResult(result: "", error:err, callBackID: self.callbackId)
+                self.sendResult(result: "", error:err, callBackID: self.callbackIds!["writeData"] as! String)
             }
             if success {
-                self.sendResult(result: "", error: nil, callBackID: self.callbackId)
+                self.sendResult(result: "", error: nil, callBackID: self.callbackIds!["writeData"] as! String)
             }
         }
     }
     
     @objc(updateBackgroundJob:)
     func updateBackgroundJob(command: CDVInvokedUrlCommand) {
-        self.callbackId = command.callbackId
+        self.callbackIds!["updateBackgroundJob"] = command.callbackId
         
         let queryParameters = command.arguments[0] as? String ?? ""
         if let parameters = self.parseUpdateParameters(parameters: queryParameters) {
@@ -68,7 +69,7 @@ class OSHealthFitness: CordovaImplementation {
             ) { [weak self] success, error in
                 guard let self = self else { return }
                 
-                self.sendResult(result: "", error: !success ? error : nil, callBackID: self.callbackId)
+                self.sendResult(result: "", error: !success ? error : nil, callBackID: self.callbackIds!["updateBackgroundJob"] as! String)
             }
         }
     }
@@ -110,7 +111,7 @@ class OSHealthFitness: CordovaImplementation {
     
     @objc(getLastRecord:)
     func getLastRecord(command: CDVInvokedUrlCommand) {
-        self.callbackId = command.callbackId
+        self.callbackIds!["getLastRecord"] = command.callbackId
         let variable = command.arguments[0] as? String ?? ""
         
         self.plugin?.advancedQuery(
@@ -125,36 +126,36 @@ class OSHealthFitness: CordovaImplementation {
             guard let self = self else { return }
             
             if success {
-                self.sendResult(result: result, error: nil, callBackID: self.callbackId)
+                self.sendResult(result: result, error: nil, callBackID: self.callbackIds!["getLastRecord"] as! String)
             } else {
-                self.sendResult(result: nil, error: error, callBackID: self.callbackId)
+                self.sendResult(result: nil, error: error, callBackID: self.callbackIds!["getLastRecord"] as! String)
             }
         }
     }
     
     @objc(deleteBackgroundJob:)
     func deleteBackgroundJob(command: CDVInvokedUrlCommand) {
-        self.callbackId = command.callbackId
+        self.callbackIds!["deleteBackgroundJob"] = command.callbackId
         let id = command.arguments[0] as? String ?? ""
         
         self.plugin?.deleteBackgroundJobs(id: id) { [weak self] error in
             guard let self = self else { return }
             
-            self.sendResult(result: error == nil ? "" : nil, error: error, callBackID: self.callbackId)
+            self.sendResult(result: error == nil ? "" : nil, error: error, callBackID: self.callbackIds!["deleteBackgroundJob"] as! String)
         }
     }
     
     @objc(listBackgroundJobs:)
     func listBackgroundJobs(command: CDVInvokedUrlCommand) {
-        self.callbackId = command.callbackId
+        self.callbackIds!["listBackgroundJobs"] = command.callbackId
         
         let result = self.plugin?.listBackgroundJobs()
-        self.sendResult(result: result, error: nil, callBackID: self.callbackId)
+        self.sendResult(result: result, error: nil, callBackID: self.callbackIds!["listBackgroundJobs"] as! String)
     }
     
     @objc(setBackgroundJob:)
     func setBackgroundJob(command: CDVInvokedUrlCommand) {
-        self.callbackId = command.callbackId
+        self.callbackIds!["setBackgroundJob"] = command.callbackId
         
         let queryParameters = command.arguments[0] as? String ?? ""
         if let params = queryParameters.decode() as BackgroundJobParameters? {
@@ -182,9 +183,9 @@ class OSHealthFitness: CordovaImplementation {
                 guard let self = self else { return }
                 
                 if success {
-                    self.sendResult(result: result, error: nil, callBackID: self.callbackId)
+                    self.sendResult(result: result, error: nil, callBackID: self.callbackIds!["setBackgroundJob"] as! String)
                 } else {
-                    self.sendResult(result: nil, error: error, callBackID: self.callbackId)
+                    self.sendResult(result: nil, error: error, callBackID: self.callbackIds!["setBackgroundJob"] as! String)
                 }
             }
         }
@@ -192,7 +193,7 @@ class OSHealthFitness: CordovaImplementation {
     
     @objc(getData:)
     func getData(command: CDVInvokedUrlCommand) {
-        self.callbackId = command.callbackId
+        self.callbackIds!["getData"] = command.callbackId
         
         let queryParameters = command.arguments[0] as? String ?? ""
         if let params = queryParameters.decode() as QueryParameters? {
@@ -219,9 +220,9 @@ class OSHealthFitness: CordovaImplementation {
                 guard let self = self else { return }
                 
                 if success {
-                    self.sendResult(result: result, error: nil, callBackID: self.callbackId)
+                    self.sendResult(result: result, error: nil, callBackID: self.callbackIds!["getData"] as! String)
                 } else {
-                    self.sendResult(result: nil, error: error, callBackID: self.callbackId)
+                    self.sendResult(result: nil, error: error, callBackID: self.callbackIds!["getData"] as! String)
                 }
             }
         }
@@ -393,6 +394,14 @@ class OSHealthFitness: CordovaImplementation {
       }
     }
     
+    func stringFromDate(dateComp:DateComponents) ->String {
+        let date = dateComp.date
+        let formatter:DateFormatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        return formatter.string(from: date!)
+    }
+    
     func stringFromDate(date:Date) ->String {
         let formatter:DateFormatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZZZZZ"
@@ -400,25 +409,140 @@ class OSHealthFitness: CordovaImplementation {
         return formatter.string(from: date)
     }
     
+    
+    /**
+     * Read gender data
+     *
+     * @param command *CDVInvokedUrlCommand
+     */
+    func readGender(command:CDVInvokedUrlCommand) {
+        self.callbackIds!["readGender"] = command.callbackId
+        let genderType = HKObjectType.characteristicType(forIdentifier: HKCharacteristicTypeIdentifier.biologicalSex)
+        HKHealthStore().requestAuthorization(toShare: nil, read: Set<HKCharacteristicType>([genderType!])) { [weak self] success, error in
+            guard let self = self else {return}
+            if(success){
+                do{
+                    let sex = try HKHealthStore().biologicalSex()
+                    var gender:String;
+                    switch (sex.biologicalSex) {
+                        case HKBiologicalSex.male:
+                            gender = "male";
+                            break;
+                        case HKBiologicalSex.female:
+                            gender = "female";
+                            break;
+                        case HKBiologicalSex.other:
+                            gender = "other";
+                            break;
+                        default:
+                            gender = "unknown";
+                    }
+                    let result = CDVPluginResult(status: CDVCommandStatus.ok, messageAs: gender)
+                    self.commandDelegate.send(result,callbackId: self.callbackIds!["readGender"] as! String)
+                }catch(let innerError){
+                    let result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:innerError.localizedDescription)
+                    self.commandDelegate.send(result,callbackId: self.callbackIds!["readGender"] as! String)
+                }
+            }
+        }
+    }
+    
+    /**
+     * Read date of birth data
+     *
+     * @param command *CDVInvokedUrlCommand
+     */
+    func readDateOfBirth(command:CDVInvokedUrlCommand){
+        self.callbackIds!["readDateOfBirth"] = command.callbackId
+        let birthdayType = HKObjectType.characteristicType(forIdentifier: HKCharacteristicTypeIdentifier.dateOfBirth)
+        HKHealthStore().requestAuthorization(toShare: nil, read: Set<HKCharacteristicType>([birthdayType!])) { [weak self] success, error in
+            guard let self = self else {return}
+            if(success){
+                do{
+                    let dateOfBirth = try HKHealthStore().dateOfBirthComponents()
+                    let result = CDVPluginResult(status: CDVCommandStatus.ok, messageAs: self.stringFromDate(dateComp: dateOfBirth))
+                    self.commandDelegate.send(result,callbackId: self.callbackIds!["readDateOfBirth"] as! String)
+                }catch(let innerError){
+                    let result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:innerError.localizedDescription)
+                    self.commandDelegate.send(result,callbackId: self.callbackIds!["readDateOfBirth"] as! String)
+                }
+            }
+        }
+    }
+    
     @objc(findWorkouts:)
     func findWorkouts(command: CDVInvokedUrlCommand){
+        let test = UserDefaults.standard.bool(forKey: "isComplete")
+        self.callbackIds!["findWorkouts"] = command.callbackId
         let args:NSDictionary = command.arguments[0] as! NSDictionary;
         let startDateNumber:NSNumber? = args["startDate"] as? NSNumber
         let endDateNumber:NSNumber? = args["endDate"] as? NSNumber
         let startDate = Date.init(timeIntervalSince1970: TimeInterval(startDateNumber!.intValue))
         let endDate = Date.init(timeIntervalSince1970: TimeInterval(endDateNumber!.intValue))
         
-        let ascending = (args["ascending"] != nil && args["ascending"] as! Bool)
+        findWorkouts(startDate: startDate, endDate: endDate) { workoutList,error in
+            var result:CDVPluginResult
+            if(error == nil){
+                result = CDVPluginResult(status: CDVCommandStatus.ok, messageAs: workoutList)
+            }else{
+                result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:error)
+            }
+            self.commandDelegate.send(result,callbackId: self.callbackIds!["findWorkouts"] as! String)
+        }
+    }
+
+    @objc(querySampleType:)
+    func querySampleType(command: CDVInvokedUrlCommand){
+        self.callbackIds!["querySampleType"] = command.callbackId
+        let args:NSDictionary = command.arguments[0] as! NSDictionary;
+        let startDateNumber:NSNumber? = args["startDate"] as? NSNumber
+        let endDateNumber:NSNumber? = args["endDate"] as? NSNumber
+        let startDate = Date.init(timeIntervalSince1970: TimeInterval(startDateNumber!.intValue))
+        let endDate = Date.init(timeIntervalSince1970: TimeInterval(endDateNumber!.intValue))
         
-        findWorkouts(callbackId: command.callbackId, startDate: startDate, endDate: endDate, ascending: ascending)
+        let sampleTypeString:String = args["sampleType"] as! String
+        let unitString:String? = args["unit"] as? String
+        
+        querySampleType(sampleType: sampleTypeString, units: unitString, startDate: startDate, endDate: endDate) { samplesList, error in
+            var result:CDVPluginResult
+            if(error == nil){
+                result = CDVPluginResult(status: CDVCommandStatus.ok, messageAs: samplesList)
+            }else{
+                result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:error)
+            }
+            self.commandDelegate.send(result,callbackId: self.callbackIds!["querySampleType"] as! String)
+        }
     }
     
-    @objc(findWorkouts:withStartDate:withEndDate:ascending:)
-    func findWorkouts(callbackId:String, startDate:Date, endDate:Date, ascending:Bool){
+    @objc(queryCorrelationType:)
+    func queryCorrelationType(command: CDVInvokedUrlCommand){
+        self.callbackIds!["queryCorrelationType"] = command.callbackId
+        let args:Dictionary = command.arguments[0] as! Dictionary<String, Any>;
+        let startDateNumber:NSNumber = args["startDate"] as! NSNumber
+        let endDateNumber:NSNumber = args["endDate"] as! NSNumber
+        let startDate = Date.init(timeIntervalSince1970: TimeInterval(startDateNumber.doubleValue))
+        let endDate = Date.init(timeIntervalSince1970: TimeInterval(endDateNumber.doubleValue))
         
-        let workoutPredicate:NSPredicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: HKQueryOptions.strictStartDate);
+        let correlationTypeString:String = args["correlationType"] as! String
+        let unitsString:[String] = args["units"] as! [String]
         
-        let endDateSort = NSSortDescriptor.init(key: HKSampleSortIdentifierEndDate, ascending: ascending)
+        queryCorrelationType(correlationTypeString: correlationTypeString, units: unitsString, startDate: startDate, endDate: endDate) {samplesList, error in
+            var result:CDVPluginResult
+            if(error == nil){
+                result = CDVPluginResult(status: CDVCommandStatus.ok, messageAs: samplesList)
+            }else{
+                result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:error)
+            }
+            self.commandDelegate.send(result,callbackId: self.callbackIds!["queryCorrelationType"] as! String)
+        }
+    }
+    
+    @objc(findWorkouts:withEndDate:callbackFunction:)
+    func findWorkouts(startDate:Date, endDate:Date, callbackFunction:@escaping(([Dictionary<String,Any>]?,String?) -> Void)){
+        
+        let workoutPredicate:NSPredicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: HKQueryOptions.strictEndDate);
+        
+        //let endDateSort = NSSortDescriptor.init(key: HKSampleSortIdentifierEndDate, ascending: false)
         // TODO if a specific workouttype was passed, use that
         //  if (false) {
         //    workoutPredicate = [HKQuery predicateForWorkoutsWithWorkoutActivityType:HKWorkoutActivityTypeCycling];
@@ -428,16 +552,14 @@ class OSHealthFitness: CordovaImplementation {
             guard let self = self else {return}
             if(!success){
                 DispatchQueue.main.sync {
-                    let result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:olderror?.localizedDescription)
-                    self.commandDelegate.send(result,callbackId: callbackId)
+                    callbackFunction(nil, olderror?.localizedDescription)
                 }
             }else{
                 let query = HKSampleQuery.init(sampleType: HKWorkoutType.workoutType(), predicate: workoutPredicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil){
                     sampleQuery, samples,innerError in
                     if((innerError) != nil){
                         DispatchQueue.main.sync {
-                            let result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:innerError?.localizedDescription)
-                            self.commandDelegate.send(result,callbackId: callbackId)
+                            callbackFunction(nil, innerError?.localizedDescription)
                         }
                     }else{
                         guard let results: [HKWorkout] = samples as? [HKWorkout] else { return }
@@ -451,30 +573,31 @@ class OSHealthFitness: CordovaImplementation {
                             let source = workout.sourceRevision.source
 
                             // TODO: use a float value, or switch to metric
-                            let miles = workout.totalDistance?.doubleValue(for: .meterUnit(with: .none))
-                            let milesString = String(format: "%ld",miles!)
+                            var miles = workout.totalDistance?.doubleValue(for: .meterUnit(with: .none))
+                            if miles == nil {
+                                miles = 0
+                            }
 
                             // Parse totalEnergyBurned in kilocalories
-                            let cals = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie())
-                            let calories = String(format: "%d", cals!)
+                            var calories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie())
+                            if calories == nil {
+                                calories = 0
+                            }
                             
                             let entry = [
                                 "duration": workout.duration,
                                 "startDate": self.stringFromDate(date: workout.startDate),
                                 "endDate": self.stringFromDate(date: workout.endDate),
-                                "distance": milesString,
+                                "distance": miles,
                                 "energy": calories,
-                                "sourceBundleId": source.bundleIdentifier,
-                                "sourceName": source.name,
+                                "source": workout.sourceRevision.source.name+"-"+(workout.sourceRevision.productType ?? "IPhone"),
                                 "activityType": workoutActivity,
-                                "UUID": workout.uuid.uuidString
                             ] as Dictionary
                             
                             finalResults.append(entry)
                         }
                         DispatchQueue.main.sync {
-                            let result = CDVPluginResult(status:CDVCommandStatus_OK, messageAs:finalResults)
-                            self.commandDelegate.send(result,callbackId: callbackId)
+                            callbackFunction(finalResults, nil)
                         }
                     }
                 };
@@ -489,84 +612,73 @@ class OSHealthFitness: CordovaImplementation {
      * @param elem  *NSString
      * @return      *HKSampleType
      */
-    func getHKSampleType(elem:NSString) -> HKSampleType? {
+    func getHKSampleType(elem:NSString) -> (HKSampleType?,HKCorrelationType?) {
 
         var type:HKSampleType?
+        var correlationtype:HKCorrelationType?
         
         type = HKObjectType.quantityType(forIdentifier: elem as HKQuantityTypeIdentifier)
         
         if (type != nil) {
-            return type
+            return (type,nil)
         }
 
         type = HKObjectType.categoryType(forIdentifier: elem as HKCategoryTypeIdentifier)
         if (type != nil) {
-            return type
+            return (type,nil)
         }
 
-        type = HKObjectType.correlationType(forIdentifier: elem as HKCorrelationTypeIdentifier)
-        if (type != nil) {
-            return type
+        correlationtype = HKObjectType.correlationType(forIdentifier: elem as HKCorrelationTypeIdentifier)
+        if (correlationtype != nil) {
+            return (nil,correlationtype)
         }
         
         if elem == "workoutType"{
-            return HKObjectType.workoutType()
+            return (HKObjectType.workoutType(),nil)
         }
 
         // leave this here for if/when apple adds other sample types
-        return type
+        return (nil,nil)
 
     }
     
-    @objc(querySampleType:)
-    func querySampleType(command: CDVInvokedUrlCommand){
-        let args:NSDictionary = command.arguments[0] as! NSDictionary;
-        let startDateNumber:NSNumber? = args["startDate"] as? NSNumber
-        let endDateNumber:NSNumber? = args["endDate"] as? NSNumber
-        let startDate = Date.init(timeIntervalSince1970: TimeInterval(startDateNumber!.intValue))
-        let endDate = Date.init(timeIntervalSince1970: TimeInterval(endDateNumber!.intValue))
+    @objc(querySampleType:inUnits:withStartDate:withEndDate:callbackFunction:)
+    func querySampleType(sampleType:String, units:String?, startDate:Date, endDate:Date, callbackFunction:@escaping(([Dictionary<String,Any>]?,String?) -> Void)){
         
-        let sampleTypeString:String = args["sampleType"] as! String
-        var unitString:String? = args["unit"] as? String
-        
-        let ascending = (args["ascending"] != nil && args["ascending"] as! Bool)
-
-        let typeTemp = self.getHKSampleType(elem: sampleTypeString as NSString)
-        if typeTemp == nil {
-            let result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:"sampleType was invalid")
-            self.commandDelegate.send(result,callbackId: command.callbackId)
+        let typeTemp = self.getHKSampleType(elem: sampleType as NSString)
+        if typeTemp.0 == nil {
+            callbackFunction(nil, "sampleType was invalid")
             return
         }
-        let type = typeTemp!
+        let type = typeTemp.0!
         var unit:HKUnit? = nil
-        if unitString != nil {
-            if unitString == "mmol/L" {
+        if units != nil {
+            if units == "mmol/L" {
                 // @see https://stackoverflow.com/a/30196642/1214598
                 unit = HKUnit.moleUnit(with: HKMetricPrefix.milli, molarMass: HKUnitMolarMassBloodGlucose).unitDivided(by: HKUnit.liter())
             } else {
                 // issue 51
                 // @see https://github.com/Telerik-Verified-Plugins/HealthKit/issues/51
-                if unitString == "percent" {
-                    unitString = "%"
+                if units == "percent" {
+                    unit = HKUnit.init(from: "%")
+                }else{
+                    unit = HKUnit.init(from: units!)
                 }
-                unit = HKUnit.init(from: unitString!)
             }
         }
+        
         // TODO check that unit is compatible with sampleType if sample type of HKQuantityType
-        let predicate:NSPredicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: HKQueryOptions.strictStartDate)
+        let predicate:NSPredicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: HKQueryOptions.strictEndDate)
         
         let requestTypes:Set<HKObjectType> = Set.init(arrayLiteral: type)
         HKHealthStore().requestAuthorization(toShare: nil, read: requestTypes) {[weak self] success, error in
             guard let self = self else {return}
             if success {
-                let endDateSort = NSSortDescriptor.init(key: HKSampleSortIdentifierEndDate, ascending: ascending)
+                let endDateSort = NSSortDescriptor.init(key: HKSampleSortIdentifierEndDate, ascending: false)
                 let query = HKSampleQuery.init(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [endDateSort]) { sampleQuery, results, innerError in
                     
                     if (innerError != nil) {
-                        DispatchQueue.main.sync {
-                            let result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:innerError!.localizedDescription)
-                            self.commandDelegate.send(result,callbackId: command.callbackId)
-                        }
+                            callbackFunction(nil, innerError?.localizedDescription)
                     } else {
                         
                         var finalResults:[Dictionary<String,Any>] = []
@@ -579,162 +691,219 @@ class OSHealthFitness: CordovaImplementation {
                             //NSMutableDictionary *entry = [NSMutableDictionary dictionary];
 
                             // common indices
-                            entry[ "startDate"] = self.stringFromDate(date: startSample)
-                            entry[ "endDate"] = self.stringFromDate(date: endSample)
-                            entry[ "UUID"] = sample.uuid.uuidString
-
-                            entry[ "sourceName"] = sample.sourceRevision.source.name
-                            entry[ "sourceBundleId"] = sample.sourceRevision.source.bundleIdentifier
-
+                            entry["startDate"] = self.stringFromDate(date: startSample)
+                            entry["endDate"] = self.stringFromDate(date: endSample)
+                            entry["source"] = sample.sourceRevision.source.name+"-"+(sample.sourceRevision.productType ?? "IPhone")
+                            
                             if sample.metadata == nil || JSONSerialization.isValidJSONObject(sample.metadata!) {
-                                entry[ "metadata"] = []
+                                entry["metadata"] = []
                             } else {
-                                entry[ "metadata"] = sample.metadata
+                                entry["metadata"] = sample.metadata
                             }
-
+                            
                             // case-specific indices
                             if sample is HKCategorySample {
                                 let csample = sample as! HKCategorySample
-                                entry[ "value"] = csample.value
-                                entry[ "categoryType.identifier"] = csample.categoryType.identifier
-                                entry[ "categoryType.description"] = csample.categoryType.description
+                                entry["value"] = csample.value
                             }else if sample is HKCorrelation{
                                 let correlation = sample as! HKCorrelation
-                                entry[ "correlationType"] = correlation.correlationType.identifier
+                                entry["value"] = correlation.correlationType.identifier
                                 
                             }else if sample is HKQuantitySample {
                                 let qsample = sample as! HKQuantitySample
-                                entry[ "quantity"] = qsample.quantity.doubleValue(for: unit!)
+                                entry["value"] = qsample.quantity.doubleValue(for: unit!)
 
                             } else if sample is HKWorkout {
-                                
                                 let wsample = sample as! HKWorkout
-                                entry[ "duration"] = wsample.duration
-
+                                entry["value"] = wsample.duration
                             }
                             
                             finalResults.append(entry)
                         }
-                        DispatchQueue.main.sync {
-                            let result = CDVPluginResult(status:CDVCommandStatus_OK, messageAs:finalResults)
-                            self.commandDelegate.send(result,callbackId: command.callbackId)
-                        }
+                        callbackFunction(finalResults, nil)
                     }
                 }
                 HKHealthStore().execute(query)
             }else {
-                DispatchQueue.main.sync {
-                    let result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:error!.localizedDescription)
-                    self.commandDelegate.send(result,callbackId: command.callbackId)
-                }
+                callbackFunction(nil, error?.localizedDescription)
             }
         }
     }
     
-    @objc(queryCorrelationType:)
-    func queryCorrelationType(command: CDVInvokedUrlCommand){
-        let args:Dictionary = command.arguments[0] as! Dictionary<String, Any>;
-        let startDateNumber:NSNumber = args["startDate"] as! NSNumber
-        let endDateNumber:NSNumber = args["endDate"] as! NSNumber
-        let startDate = Date.init(timeIntervalSinceReferenceDate: TimeInterval(startDateNumber.doubleValue))
-        let endDate = Date.init(timeIntervalSinceReferenceDate: TimeInterval(endDateNumber.doubleValue))
+    @objc(queryCorrelationType:withUnits:withStartDate:withEndDate:callbackFunction:)
+    func queryCorrelationType(correlationTypeString:String, units:[String], startDate:Date, endDate:Date, callbackFunction:@escaping(([Dictionary<String,Any>]?,String?) -> Void)){
         
-        let correlationTypeString:String = args["correlationType"] as! String
-        let unitsString:[String?] = args["units"] as! [String?]
-        
-
-        let typeTemp:HKCorrelationType? = self.getHKSampleType(elem: correlationTypeString as NSString) as? HKCorrelationType
-        if typeTemp == nil {
-            let result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:"sampleType was invalid")
-            self.commandDelegate.send(result,callbackId: command.callbackId)
+        let typeTemp = self.getHKSampleType(elem: correlationTypeString as NSString)
+        if typeTemp.1 == nil {
+            callbackFunction(nil, "sampleType was invalid")
             return
         }
-        let type = typeTemp!
+        let type = typeTemp.1!
         
-        var units:[HKUnit?] = []
-        for unitString:String? in unitsString {
-            let unit = (unitString != nil) ? HKUnit.init(from: unitString!) : nil
-            units.append(unit)
+        var unitsArray:[HKUnit?] = []
+        for unit:String? in units {
+            let unit = (unit != nil) ? HKUnit.init(from: unit!) : nil
+            unitsArray.append(unit)
         }
 
         // TODO check that unit is compatible with sampleType if sample type of HKQuantityType
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: HKQueryOptions.strictStartDate)
-
-        let query = HKCorrelationQuery.init(type: type, predicate: predicate, samplePredicates: nil, completion: {[weak self] correlationQuery, correlations, error in
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: HKQueryOptions.strictEndDate)
+        
+        var requestTypes:Set<HKObjectType>
+        if correlationTypeString == "HKCorrelationTypeIdentifierBloodPressure" {
+            requestTypes = Set.init(arrayLiteral: HKObjectType.quantityType(forIdentifier: .bloodPressureSystolic)!,HKObjectType.quantityType(forIdentifier: .bloodPressureDiastolic)!)
+        }else{
+            requestTypes = Set.init(arrayLiteral: HKObjectType.quantityType(forIdentifier: .dietaryIron)!)
+        }
+        HKHealthStore().requestAuthorization(toShare: nil, read: requestTypes) {[weak self] success, error in
             guard let self = self else {return}
-            if ((error) != nil) {
-                DispatchQueue.main.sync {
-                    let result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:error!.localizedDescription)
-                    self.commandDelegate.send(result,callbackId: command.callbackId)
-                }
-            } else {
-                var finalResult:[Dictionary<String,Any>] = []
-                for sample:HKSample in correlations! {
-                    let startSample = sample.startDate
-                    let endSample = sample.endDate
-                    
-                    var entry:Dictionary<String,Any> = Dictionary()
-                    
-                    entry[ "startDate"] = self.stringFromDate(date: startSample)
-                    entry[ "endDate"] = self.stringFromDate(date: endSample)
-                    
-                    entry[ "UUID"] = sample.uuid.uuidString
-                    entry[ "sourceName"] = sample.sourceRevision.source.name
-                    entry[ "sourceBundleId"] = sample.sourceRevision.source.bundleIdentifier
+            let query = HKCorrelationQuery.init(type: type, predicate: predicate, samplePredicates: nil, completion: {[weak self] correlationQuery, correlations, error in
+                guard let self = self else {return}
+                if ((error) != nil) {
+                    callbackFunction(nil,error!.localizedDescription)
+                } else {
+                    var finalResult:[Dictionary<String,Any>] = []
+                    for corSample:HKSample in correlations! {
+                        let startSample = corSample.startDate
+                        let endSample = corSample.endDate
+                        
+                        var entry:Dictionary<String,Any> = Dictionary()
+                        
+                        entry[ "startDate"] = self.stringFromDate(date: startSample)
+                        entry[ "endDate"] = self.stringFromDate(date: endSample)
+                        entry["source"] = corSample.sourceRevision.source.name+"-"+(corSample.sourceRevision.productType ?? "IPhone")
+                        
+                        if corSample is HKCategorySample {
+                            let csample = corSample as! HKCategorySample
+                            entry[ "value"] = csample.value
+                            entry[ "categoryType.identifier"] = csample.categoryType.identifier
+                            entry[ "categoryType.description"] = csample.categoryType.description
+                        }else if corSample is HKCorrelation{
+                            let correlation = corSample as! HKCorrelation
 
-                    if sample.metadata == nil || JSONSerialization.isValidJSONObject(sample.metadata!) {
-                        entry[ "metadata"] = []
-                    } else {
-                        entry[ "metadata"] = sample.metadata
-                    }
-                    
-                    if sample is HKCategorySample {
-                        let csample = sample as! HKCategorySample
-                        entry[ "value"] = csample.value
-                        entry[ "categoryType.identifier"] = csample.categoryType.identifier
-                        entry[ "categoryType.description"] = csample.categoryType.description
-                    }else if sample is HKCorrelation{
-                        let correlation = sample as! HKCorrelation
-                        entry[ "correlationType"] = correlation.correlationType.identifier
-
-                        let samples:NSDictionary = NSDictionary.init()
-                        guard let correlationObjs:Set<HKQuantitySample> = correlation.objects as? Set<HKQuantitySample> else { return }
-                        for quantitySample:HKQuantitySample in correlationObjs {
-                            for (index,unit) in units.enumerated() {
-                                let unitS = unitsString[index]
-                                if quantitySample.quantity.is(compatibleWith: unit!) {
-                                    entry[ "startDate"] = self.stringFromDate(date:quantitySample.startDate)
-                                    entry[ "endDate"] = self.stringFromDate(date:quantitySample.endDate)
-                                    entry[ "sampleType"] = quantitySample.sampleType.identifier
-                                    entry[ "value"] = quantitySample.quantity.doubleValue(for: unit!)
-                                    entry[ "unit"] = unitS
-                                    entry[ "metadata"] = (quantitySample.metadata != nil && JSONSerialization.isValidJSONObject(quantitySample.metadata!)) ? quantitySample.metadata : []
-                                    entry[ "UUID"] = quantitySample.uuid.uuidString
+                            var samples:[Dictionary<String,Any>] = []
+                            var sample:Dictionary<String,Any> = Dictionary()
+                            guard let correlationObjs:Set<HKQuantitySample> = correlation.objects as? Set<HKQuantitySample> else { return }
+                            for quantitySample:HKQuantitySample in correlationObjs {
+                                for (_,unit) in unitsArray.enumerated() {
+                                    if quantitySample.quantity.is(compatibleWith: unit!) {
+                                        sample["value"] = quantitySample.quantity.doubleValue(for: unit!)
+                                        sample["type"] = quantitySample.sampleType.identifier
+                                        samples.append(sample)
+                                        break;
+                                    }
+                                }
+                            }
+                            entry["samples"] = samples
+                            
+                        }else if corSample is HKQuantitySample {
+                            let qsample = corSample as! HKQuantitySample
+                            for unit:HKUnit? in unitsArray {
+                                if qsample.quantity.is(compatibleWith: unit!) {
+                                    let quantity = qsample.quantity.doubleValue(for: unit!)
+                                    entry["value"] = String.init(format:"%f",quantity)
                                     break;
                                 }
                             }
                         }
-                        entry[ "samples"] = samples
-                        
-                    }else if sample is HKQuantitySample {
-                        let qsample = sample as! HKQuantitySample
-                        for unit:HKUnit? in units {
-                            if qsample.quantity.is(compatibleWith: unit!) {
-                                let quantity = qsample.quantity.doubleValue(for: unit!)
-                                entry[ "quantity"] = String.init(format:"%f",quantity)
-                                break;
-                            }
-                        }
+                        finalResult.append(entry)
                     }
-                    finalResult.append(entry)
+                    callbackFunction(finalResult,nil)
                 }
-                
-                DispatchQueue.main.sync {
-                    let result = CDVPluginResult(status:CDVCommandStatus_OK, messageAs:finalResult)
-                    self.commandDelegate.send(result,callbackId: command.callbackId)
-                }
+            });
+            HKHealthStore().execute(query)
+        }
+    }
+    
+    func getDeviceInfo(command: CDVInvokedUrlCommand) {
+        let deviceProperties = self.deviceProperties()
+
+        let result = CDVPluginResult(status:CDVCommandStatus_OK, messageAs:deviceProperties)
+        self.commandDelegate.send(result,callbackId: command.callbackId)
+    }
+    
+    func isVirtual() ->Bool
+    {
+        #if TARGET_OS_SIMULATOR
+            return true;
+        #elseif TARGET_IPHONE_SIMULATOR
+            return true;
+        #else
+            return false;
+        #endif
+    }
+
+    
+    func isiOSAppOnMac() ->Bool
+    {
+        #if __IPHONE_14_0
+        if  #available(iOS 14.0, *) {
+            return NSProcessInfo.processInfo.isiOSAppOnMac
+        }
+        #endif
+
+        return false;
+    }
+    
+    func uniqueAppInstanceIdentifier(device:UIDevice) -> String
+    {
+        let userDefaults = UserDefaults.standard
+        
+        // Check user defaults first to maintain backwards compaitibility with previous versions
+        // which didn't user identifierForVendor
+        var app_uuid = userDefaults.string(forKey: "CDVUUID")
+        
+        if app_uuid == nil{
+            if UIDevice.responds(to: Selector("identifierForVendor")) {
+                app_uuid = device.identifierForVendor!.uuidString
+            }else{
+                let uuid = CFUUIDCreate(nil)
+                let app_uuid_temp = CFUUIDCreateString(nil, uuid) as NSString?
+                app_uuid = app_uuid_temp as String?
             }
-        });
-        HKHealthStore().execute(query)
+            userDefaults.setValue(app_uuid, forKey: "CDVUUID")
+            userDefaults.synchronize()
+        }
+        
+        return app_uuid!;
+    }
+    
+    func getCDV_VERSION()->String{
+        return String(format: "%d.%d.%d", (CORDOVA_VERSION_MIN_REQUIRED / 10000),
+                      (CORDOVA_VERSION_MIN_REQUIRED % 10000) / 100,
+                      (CORDOVA_VERSION_MIN_REQUIRED % 10000) % 100)
+    }
+
+
+    
+    func deviceProperties()-> Dictionary<String, Any>{
+        let device = UIDevice.current
+        let userDefaults = UserDefaults.standard;
+        
+        let completedHDU = userDefaults.bool(forKey: "HDUCompleted")
+        let historicalDataUpload:Dictionary<String,Any>
+        if completedHDU {
+            historicalDataUpload = [
+                "completed":true,
+                "date": userDefaults.string(forKey: "HDUDate")!
+            ]
+        }else{
+            historicalDataUpload = [
+                "completed":false
+            ]
+        }
+        
+        return[
+            "manufacturer": "Apple",
+            "model": device.model,
+            "platform": "iOS",
+            "version": device.systemVersion,
+            "uuid": device.identifierForVendor!.uuidString,
+            "cordova": getCDV_VERSION(),
+            "isVirtual": self.isVirtual,
+            "isiOSAppOnMac": self.isiOSAppOnMac,
+            "historicalDataUpload":historicalDataUpload
+        ]
     }
 }
+       
