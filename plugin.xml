@@ -163,6 +163,8 @@
 		<!-- iOS Source Files -->
 		<source-file src="src/ios/OSHealthFitness.swift" />
     <source-file src="src/ios/CordovaImplementation.swift" />
+		<source-file src="src/ios/AppDelegate+HealthFitness.h" />
+    <source-file src="src/ios/AppDelegate+HealthFitness.m" />
     <framework src="src/ios/frameworks/OSHealthFitnessLib.xcframework" embed="true" custom="true" />
     <framework src="src/ios/frameworks/OSCore.xcframework" embed="true" custom="true" />
     
