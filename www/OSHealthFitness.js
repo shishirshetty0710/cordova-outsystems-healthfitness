@@ -15,6 +15,8 @@ dataTypes['WORKOUTS'] = 'HKWorkoutTypeIdentifier';
 dataTypes['BLOOD_GLUCOSE'] = 'HKQuantityTypeIdentifierBloodGlucose';
 dataTypes['BLOOD_PRESSURE'] = 'HKCorrelationTypeIdentifierBloodPressure'; // when requesting auth it's HKQuantityTypeIdentifierBloodPressureSystolic and HKQuantityTypeIdentifierBloodPressureDiastolic
 
+dataTypes['WALKING_SPEED'] = 'HKQuantityTypeIdentifierWalkingSpeed';
+
 dataTypes['MINDFULLNESS'] = 'HKCategoryTypeIdentifierMindfulSession';
 dataTypes['STAIRS'] = 'HKQuantityTypeIdentifierFlightsClimbed';
 dataTypes['CALORIES_ACTIVE'] = 'HKQuantityTypeIdentifierActiveEnergyBurned';
@@ -89,6 +91,7 @@ units['NUTRITION_IRON'] = 'mg';
 units['NUTRITION_WATER'] = 'ml';
 units['NUTRITION_CAFFEINE'] = 'g';
 */
+units['WALKING_SPEED'] = 'm/s';
 units['BLOOD_GLUCOSE'] = 'mmol/L';
 units['INSULINE'] = 'IU';
 units['APPLE_EXERCISE_TIME'] = 'min';
@@ -156,6 +159,13 @@ exports.updateBackgroundJob = function (success, error, params) {
 /*
 * New Functions
 */
+exports.getMetadata = function (success, error) {
+  exec(success, error, 'OSHealthFitness', 'getDeviceInfo', []);
+};
+
+exports.setConfigurations = function (url,headers,title,contenRunning,contentComplete,hasNotif) {
+  exec(null, null, 'OSHealthFitness', 'setConfigurations', [url,headers,title,contenRunning,contentComplete,hasNotif]);
+};
 function readDateOfBirth(success, error) {
   exec(success, error, 'OSHealthFitness', 'readDateOfBirth', []);
 }
@@ -345,7 +355,8 @@ exports.query = function (success, error, params) {
       type: camalize(opts.dataType),
       startDate: opts.startDate,
       endDate: opts.endDate,
-      correlationType: dataTypes[opts.dataType]
+      correlationType: dataTypes[opts.dataType],
+      task: opts.task
     }
     if (units[opts.dataType].constructor.name == "Array") qops.units = units[opts.dataType];
     else qops.units = [units[opts.dataType]];

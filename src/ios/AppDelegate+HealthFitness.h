@@ -10,7 +10,7 @@
 #import "AppDelegate.h"
 #import <objc/runtime.h>
 
-@interface AppDelegate (AppDelegateHealthFitness) {}
+@interface AppDelegate (AppDelegateHealthFitness)<NSURLSessionTaskDelegate> {}
 
 @end
 #endif /* AppDelegate_HealthFitness_h */

@@ -477,13 +477,30 @@ class OSHealthFitness: CDVPlugin {
     
     @objc(findWorkouts:)
     func findWorkouts(command: CDVInvokedUrlCommand){
-        let test = UserDefaults.standard.bool(forKey: "isComplete")
         self.callbackIds!["findWorkouts"] = command.callbackId
         let args:NSDictionary = command.arguments[0] as! NSDictionary;
         let startDateNumber:NSNumber? = args["startDate"] as? NSNumber
         let endDateNumber:NSNumber? = args["endDate"] as? NSNumber
         let startDate = Date.init(timeIntervalSince1970: TimeInterval(startDateNumber!.intValue))
         let endDate = Date.init(timeIntervalSince1970: TimeInterval(endDateNumber!.intValue))
+        
+        let isTask:Bool? = args["task"] as? Bool
+        if isTask != nil {
+            var tasks = UserDefaults.standard.array(forKey: "BackgroundTasks")
+            let task = NSDictionary()
+            task.setValue(0, forKey: "function")
+            task.setValue(startDate, forKey: "startDate")
+            task.setValue(endDate, forKey: "endDate")
+            if tasks == nil {
+                tasks = Array()
+            }
+            tasks!.append(task);
+            UserDefaults.standard.setValue(tasks, forKey: "BackgroundTasks")
+            UserDefaults.standard.synchronize()
+            
+            self.commandDelegate.send(CDVPluginResult(status: CDVCommandStatus.ok, messageAs: []), callbackId: self.callbackIds!["findWorkouts"] as! String)
+            return;
+        }
         
         findWorkouts(startDate: startDate, endDate: endDate) { workoutList,error in
             var result:CDVPluginResult
@@ -508,6 +525,26 @@ class OSHealthFitness: CDVPlugin {
         let sampleTypeString:String = args["sampleType"] as! String
         let unitString:String? = args["unit"] as? String
         
+        let isTask:Bool? = args["task"] as? Bool
+        if isTask != nil {
+            var tasks = UserDefaults.standard.array(forKey: "BackgroundTasks")
+            var task = NSMutableDictionary()
+            task.setValue(1, forKey: "function")
+            task.setValue(startDate, forKey: "startDate")
+            task.setValue(endDate, forKey: "endDate")
+            task.setValue(unitString, forKey: "unit")
+            task.setValue(sampleTypeString, forKey: "type")
+            if tasks == nil {
+                tasks = Array()
+            }
+            tasks!.append(task);
+            UserDefaults.standard.setValue(tasks, forKey: "BackgroundTasks")
+            UserDefaults.standard.synchronize()
+            
+            self.commandDelegate.send(CDVPluginResult(status: CDVCommandStatus.ok, messageAs: []), callbackId: self.callbackIds!["querySampleType"] as! String)
+            return;
+        }
+        
         querySampleType(sampleType: sampleTypeString, units: unitString, startDate: startDate, endDate: endDate) { samplesList, error in
             var result:CDVPluginResult
             if(error == nil){
@@ -531,6 +568,25 @@ class OSHealthFitness: CDVPlugin {
         let correlationTypeString:String = args["correlationType"] as! String
         let unitsString:[String] = args["units"] as! [String]
         
+        let isTask:Bool? = args["task"] as? Bool
+        if isTask != nil {
+            var tasks = UserDefaults.standard.array(forKey: "BackgroundTasks")
+            let task = NSDictionary()
+            task.setValue(1, forKey: "function")
+            task.setValue(startDate, forKey: "startDate")
+            task.setValue(endDate, forKey: "endDate")
+            task.setValue(unitsString, forKey: "units")
+            task.setValue(correlationTypeString, forKey: "type")
+            if tasks == nil {
+                tasks = Array()
+            }
+            tasks!.append(task);
+            UserDefaults.standard.setValue(tasks, forKey: "BackgroundTasks")
+            UserDefaults.standard.synchronize()
+            
+            self.commandDelegate.send(CDVPluginResult(status: CDVCommandStatus.ok, messageAs: []), callbackId: self.callbackIds!["querySampleType"] as! String)
+            return;
+        }
         queryCorrelationType(correlationTypeString: correlationTypeString, units: unitsString, startDate: startDate, endDate: endDate) {samplesList, error in
             var result:CDVPluginResult
             if(error == nil){
@@ -661,7 +717,9 @@ class OSHealthFitness: CDVPlugin {
             if units == "mmol/L" {
                 // @see https://stackoverflow.com/a/30196642/1214598
                 unit = HKUnit.moleUnit(with: HKMetricPrefix.milli, molarMass: HKUnitMolarMassBloodGlucose).unitDivided(by: HKUnit.liter())
-            } else {
+            } else if units == "m/s"{
+                unit = HKUnit.meter().unitDivided(by: HKUnit.second())
+            }else {
                 // issue 51
                 // @see https://github.com/Telerik-Verified-Plugins/HealthKit/issues/51
                 if units == "percent" {
@@ -820,6 +878,7 @@ class OSHealthFitness: CDVPlugin {
         }
     }
     
+    @objc(getDeviceInfo:)
     func getDeviceInfo(command: CDVInvokedUrlCommand) {
         let deviceProperties = self.deviceProperties()
 
@@ -902,16 +961,29 @@ class OSHealthFitness: CDVPlugin {
             "manufacturer": "Apple",
             "model": device.model,
             "platform": "iOS",
-            "version": device.systemVersion,
             "uuid": device.identifierForVendor!.uuidString,
             "cordova": getCDV_VERSION(),
-            "isVirtual": self.isVirtual,
-            "isiOSAppOnMac": self.isiOSAppOnMac,
+            "version": Bundle.main.infoDictionary!["CFBundleShortVersionString"] as? String,
             "historicalDataUpload":historicalDataUpload
         ]
     }
+    
+    @objc(setConfigurations:)
+    func setConfigurations(command: CDVInvokedUrlCommand){
+        let userDefaults = UserDefaults.standard;
+        
+        userDefaults.setValue(command.argument(at: 0) as! String, forKey: "url")
+        userDefaults.setValue(command.argument(at: 1) as! Array<Dictionary<String,String>>, forKey: "headers")
+        let notifActive = command.argument(at: 5) as! Bool
+        userDefaults.setValue(notifActive , forKey: "NotificationActive")
+        
+        if notifActive {
+            userDefaults.setValue(command.argument(at: 2) as! String, forKey: "NotificationTitle")
+            userDefaults.setValue(command.argument(at: 3) as! String, forKey: "NotificationContentRunning")
+            userDefaults.setValue(command.argument(at: 4) as! String, forKey: "NotificationContentCompleted")
+        }
+    }
 }
-       
 
 extension OSHealthFitness: PlatformProtocol {
 

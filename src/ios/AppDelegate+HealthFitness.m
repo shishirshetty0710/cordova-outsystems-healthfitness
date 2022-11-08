@@ -10,9 +10,11 @@
 #import <BackgroundTasks/BackgroundTasks.h>
 #import <UserNotifications/UserNotifications.h>
 
-@implementation AppDelegate (AppDelegateHealthFitness)
+@implementation AppDelegate(AppDelegateHealthFitness)
 
 static NSString* taskId = @"com.outsystems.health.custom";
+NSURLSession* sharedSession;
+NSUInteger count;
 
 - (void)applicationDidEnterBackground:(UIApplication *)application{
     [self scheduleProcessingTask];
@@ -87,7 +89,49 @@ static NSString* taskId = @"com.outsystems.health.custom";
     }else{
         [UIApplication.sharedApplication setMinimumBackgroundFetchInterval:UIApplicationBackgroundFetchIntervalMinimum];
     }
+    NSURLSessionConfiguration* config = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:@"BGSessionWSHealthKit"];
+    sharedSession = [NSURLSession sessionWithConfiguration:config delegate:self delegateQueue:nil];
+    NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
     
+    NSArray* jsonS = [defaults valueForKey:@"JSONs"];
+    
+    if( jsonS != nil){
+        NSString* url = [defaults valueForKey:@"url"];
+        if (url == nil) {
+            return handled;
+        }
+        for(NSData* body in jsonS) {
+                
+            NSURL* urlR =[NSURL URLWithString:url];
+            NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:urlR];
+            
+            //create the Method "GET" or "POST"
+            [urlRequest setHTTPMethod:@"POST"];
+            
+            NSArray* headers = [defaults valueForKey:@"headers"];
+            for (NSDictionary* header in headers) {
+                [urlRequest setValue:[header valueForKey:@"Value"] forHTTPHeaderField:[header valueForKey:@"Key"]];
+            }
+            
+            [urlRequest setHTTPBody:body];
+            NSURLSession *session = [NSURLSession sharedSession];
+            NSURLSessionDataTask *dataTask = [session dataTaskWithRequest:urlRequest completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+                if (error != nil) {
+                    NSLog(@"Information retrieved in background failed to be sent to webservice!");
+                    NSLog(@"%@",error.localizedDescription);
+                }
+                NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+                if(httpResponse.statusCode != 200)
+                {
+                    NSLog(@"Information retrieved in background failed to be sent to webservice!");
+                }
+            }];
+            [dataTask resume];
+        }
+    }
+    jsonS = [[NSArray alloc]init];
+    [defaults setValue:jsonS forKey:@"JSONs"];
+    [defaults synchronize];
     return handled;
 }
 - (void)application:(UIApplication *)application performFetchWithCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler{
@@ -97,18 +141,19 @@ static NSString* taskId = @"com.outsystems.health.custom";
 - (UIBackgroundFetchResult)backgroundRetrievalAndSend{
     //Check userdefaults and if anything is found run the swift functions
     NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
-    [defaults setBool:true forKey:@"isComplete"];
     NSArray* tasks = [defaults valueForKey:@"BackgroundTasks"];
     if (tasks.count < 1 ) {
         return UIBackgroundFetchResultNoData;
     }
+    count = tasks.count;
     [[UNUserNotificationCenter currentNotificationCenter] getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings * _Nonnull settings) {
-        if (settings.authorizationStatus == UNAuthorizationStatusAuthorized) {
+        if (settings.authorizationStatus == UNAuthorizationStatusAuthorized && [defaults valueForKey:@"NotificationActive"]) {
             [self fireNotification:false];
         }
     }];
     
     OSHealthFitness* pluginInstance = [self.viewController getCommandInstance:@"OSHealthFitness"];
+    [defaults setValue:[[NSArray alloc]init] forKey:@"BackgroundTasks"];
     for (NSDictionary* task in tasks) {
         NSNumber* function = [task valueForKey:@"function"];
         NSDate* startD = [task valueForKey:@"startDate"];
@@ -116,15 +161,41 @@ static NSString* taskId = @"com.outsystems.health.custom";
         switch(function.intValue){
             default:{
                 [pluginInstance findWorkouts:startD withEndDate:endD callbackFunction:^(NSArray<NSDictionary<NSString *,id> *> * _Nullable itemList, NSString * _Nullable error) {
-                    
-                    if (error == nil) {
+                    count = count -1;
+                    if (error != nil) {
                         return;
                     }
                     NSError *errorJSON;
                     NSData* jsonItemList = [NSJSONSerialization dataWithJSONObject:itemList
                                                                        options:0 // Pass 0 if you don't care about the readability of the generated string
                                                                          error:&errorJSON];
-                    [self sendPostRequest:jsonItemList];
+                    NSArray* jsons = [defaults valueForKey:@"JSONs"];
+                    if (jsons == nil) {
+                        jsons = [[NSArray alloc] init];
+                    }
+                    jsons = [jsons arrayByAddingObject:jsonItemList];
+                    [defaults setValue:jsons forKey:@"JSONs"];
+                    [defaults synchronize];
+                    if (count < 1) {
+                        [[UNUserNotificationCenter currentNotificationCenter] getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings * _Nonnull settings) {
+                            if (settings.authorizationStatus == UNAuthorizationStatusAuthorized && [defaults valueForKey:@"NotificationActive"]) {
+                                [self fireNotification:true];
+                            }
+                        }];
+                        [defaults setBool:true forKey:@"HDUCompleted"];
+                        
+                        NSDate* currentDate = [NSDate date];
+                        
+                        NSDateFormatter * dateFormatter = [[NSDateFormatter alloc] init];
+                        NSTimeZone *timeZone = [NSTimeZone timeZoneWithName:@"UTC"];
+                        [dateFormatter setTimeZone:timeZone];
+                        [dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:SS.SSS'Z'"];
+                        
+                        NSString* currentDateString = [dateFormatter stringFromDate:currentDate];
+                        
+                        [defaults setValue:currentDateString forKey:@"HDUDate"];
+                        [defaults synchronize];
+                    }
                 }];
                 break;
             }
@@ -133,14 +204,41 @@ static NSString* taskId = @"com.outsystems.health.custom";
                 NSString* unit = [task valueForKey:@"unit"];
                 [pluginInstance querySampleType:type inUnits:unit withStartDate:startD withEndDate:endD callbackFunction:^(NSArray<NSDictionary<NSString *,id> *> * _Nullable itemList, NSString * _Nullable error) {
                     
-                    if (error == nil) {
+                    count = count -1;
+                    if (error != nil) {
                         return;
                     }
                     NSError *errorJSON;
                     NSData* jsonItemList = [NSJSONSerialization dataWithJSONObject:itemList
                                                                        options:0 // Pass 0 if you don't care about the readability of the generated string
                                                                          error:&errorJSON];
-                    [self sendPostRequest:jsonItemList];
+                    NSArray* jsons = [defaults valueForKey:@"JSONs"];
+                    if (jsons == nil) {
+                        jsons = [[NSArray alloc] init];
+                    }
+                    jsons = [jsons arrayByAddingObject:jsonItemList];
+                    [defaults setValue:jsons forKey:@"JSONs"];
+                    [defaults synchronize];
+                    if (count < 1) {
+                        [[UNUserNotificationCenter currentNotificationCenter] getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings * _Nonnull settings) {
+                            if (settings.authorizationStatus == UNAuthorizationStatusAuthorized && [defaults valueForKey:@"NotificationActive"]) {
+                                [self fireNotification:true];
+                            }
+                        }];
+                        [defaults setBool:true forKey:@"HDUCompleted"];
+                        
+                        NSDate* currentDate = [NSDate date];
+                        
+                        NSDateFormatter * dateFormatter = [[NSDateFormatter alloc] init];
+                        NSTimeZone *timeZone = [NSTimeZone timeZoneWithName:@"UTC"];
+                        [dateFormatter setTimeZone:timeZone];
+                        [dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:SS.SSS'Z'"];
+                        
+                        NSString* currentDateString = [dateFormatter stringFromDate:currentDate];
+                        
+                        [defaults setValue:currentDateString forKey:@"HDUDate"];
+                        [defaults synchronize];
+                    }
                 }];
                 break;
             }
@@ -149,29 +247,54 @@ static NSString* taskId = @"com.outsystems.health.custom";
                 NSArray<NSString *>* units = [task valueForKey:@"units"];
                 [pluginInstance queryCorrelationType:type withUnits:units withStartDate:startD withEndDate:endD callbackFunction:^(NSArray<NSDictionary<NSString *,id> *> * _Nullable itemList, NSString * _Nullable error) {
                     
-                    if (error == nil) {
+                    count = count -1;
+                    if (error != nil) {
                         return;
                     }
                     NSError *errorJSON;
                     NSData* jsonItemList = [NSJSONSerialization dataWithJSONObject:itemList
                                                                        options:0 // Pass 0 if you don't care about the readability of the generated string
                                                                          error:&errorJSON];
-                    [self sendPostRequest:jsonItemList];
+                    NSArray* jsons = [defaults valueForKey:@"JSONs"];
+                    if (jsons == nil) {
+                        jsons = [[NSArray alloc] init];
+                    }
+                    jsons = [jsons arrayByAddingObject:jsonItemList];
+                    [defaults setValue:jsons forKey:@"JSONs"];
+                    [defaults synchronize];
+                    if (count < 1) {
+                        [[UNUserNotificationCenter currentNotificationCenter] getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings * _Nonnull settings) {
+                            if (settings.authorizationStatus == UNAuthorizationStatusAuthorized && [defaults valueForKey:@"NotificationActive"]) {
+                                [self fireNotification:true];
+                            }
+                        }];
+                        [defaults setBool:true forKey:@"HDUCompleted"];
+                        
+                        NSDate* currentDate = [NSDate date];
+                        
+                        NSDateFormatter * dateFormatter = [[NSDateFormatter alloc] init];
+                        NSTimeZone *timeZone = [NSTimeZone timeZoneWithName:@"UTC"];
+                        [dateFormatter setTimeZone:timeZone];
+                        [dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:SS.SSS'Z'"];
+                        
+                        NSString* currentDateString = [dateFormatter stringFromDate:currentDate];
+                        
+                        [defaults setValue:currentDateString forKey:@"HDUDate"];
+                        [defaults synchronize];
+                    }
                 }];
                 break;
             }
         }
     }
-    [[UNUserNotificationCenter currentNotificationCenter] getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings * _Nonnull settings) {
-        if (settings.authorizationStatus == UNAuthorizationStatusAuthorized) {
-            [self fireNotification:false];
-        }
-    }];
+    
     return UIBackgroundFetchResultNewData;
     
 }
 -(void) sendPostRequest:(NSData*)body{
     NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+    
+    
     NSString* url = [defaults valueForKey:@"url"];
     if (url == nil) {
         return;
@@ -181,23 +304,27 @@ static NSString* taskId = @"com.outsystems.health.custom";
     //create the Method "GET" or "POST"
     [urlRequest setHTTPMethod:@"POST"];
     
-    NSString* header = [defaults valueForKey:@"AuthHeader"];
-    NSString* headerValue = [defaults valueForKey:@"AuthHeaderValue"];
-    if (header != nil && headerValue != nil) {
-        [urlRequest setValue:headerValue forHTTPHeaderField:header];
+    NSArray* headers = [defaults valueForKey:@"headers"];
+    for (NSDictionary* header in headers) {
+        [urlRequest setValue:[header valueForKey:@"Value"] forHTTPHeaderField:[header valueForKey:@"Key"]];
     }
     
+    NSURL* tempDir = NSFileManager.defaultManager.temporaryDirectory;
+    NSURL* localURL = [tempDir URLByAppendingPathComponent:@"throwaway" isDirectory:true];
+    [body writeToURL:localURL atomically:true];
     [urlRequest setHTTPBody:body];
-
-    NSURLSession *session = [NSURLSession sharedSession];
-    NSURLSessionDataTask *dataTask = [session dataTaskWithRequest:urlRequest completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+    
+    /*NSURLSessionDataTask *dataTask = [sharedSession dataTaskWithRequest:urlRequest completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
         if(httpResponse.statusCode != 200)
         {
             NSLog(@"Information retrieved in background failed to be sent to webservice!");
         }
     }];
-    [dataTask resume];
+    [dataTask resume];*/
+    NSURLSessionUploadTask *task = [sharedSession uploadTaskWithRequest:urlRequest fromFile:localURL];
+    
+    [task resume];
 }
 
 -(void) fireNotification:(BOOL) isCompleted{
@@ -210,7 +337,7 @@ static NSString* taskId = @"com.outsystems.health.custom";
     if (isCompleted) {
         notificationContent.body = [defaults valueForKey:@"NotificationContentCompleted"];
     }else{
-        notificationContent.body = [defaults valueForKey:@"NotificationContentNot"];
+        notificationContent.body = [defaults valueForKey:@"NotificationContentRunning"];
     }
     // Add Trigger
     UNTimeIntervalNotificationTrigger *notificationTrigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:1.0 repeats:false];
@@ -224,6 +351,13 @@ static NSString* taskId = @"com.outsystems.health.custom";
             NSLog(@"Unable to Add Notification Request (\(error), \(error.localizedDescription))");
         }
     }];
+}
+
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error{
+    if (error != nil) {
+        NSLog(@"Information retrieved in background failed to be sent to webservice!");;
+    }
+    NSLog(@"Information retrieved in background completed!");;
 }
 
 @end
