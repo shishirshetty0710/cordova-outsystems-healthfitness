@@ -10,7 +10,7 @@ dataTypes['HEIGHT'] = 'HKQuantityTypeIdentifierHeight';
 dataTypes['WEIGHT'] = 'HKQuantityTypeIdentifierBodyMass';
 dataTypes['HEART_RATE'] = 'HKQuantityTypeIdentifierHeartRate';
 dataTypes['BODY_FAT_PERCENTAGE'] = 'HKQuantityTypeIdentifierBodyFatPercentage';
-dataTypes['SLEEP'] = 'HKCategoryTypeIdentifierSleepAnalysis'; // and HKCategoryTypeIdentifierSleepAnalysis
+dataTypes['SLEEP'] = 'HKCategoryTypeIdentifierSleepAnalysis';
 dataTypes['WORKOUTS'] = 'HKWorkoutTypeIdentifier';
 dataTypes['BLOOD_GLUCOSE'] = 'HKQuantityTypeIdentifierBloodGlucose';
 dataTypes['BLOOD_PRESSURE'] = 'HKCorrelationTypeIdentifierBloodPressure'; // when requesting auth it's HKQuantityTypeIdentifierBloodPressureSystolic and HKQuantityTypeIdentifierBloodPressureDiastolic
@@ -244,17 +244,9 @@ var prepareCorrelation = function (data, dataType) {
     type: camalize(dataType),
     startDate: new Date(data.startDate),
     endDate: new Date(data.endDate),
-    source: data.source,
-    values: {}
+    source: data.Source,
+    value: data.value
   };
-  if (dataType === 'BLOOD_PRESSURE') {
-    res.unit = 'mmHG'
-    for (var j = 0; j < data.samples.length; j++) {
-      var sample = data.samples[j];
-      if (sample.type === 'HKQuantityTypeIdentifierBloodPressureSystolic') res.values.systolic = sample.value;
-      if (sample.type === 'HKQuantityTypeIdentifierBloodPressureDiastolic') res.values.diastolic = sample.value;
-    }
-  }
   return res;
 };
 
@@ -305,7 +297,7 @@ exports.query = function (success, error, params) {
           res.unit = 'activityType';
           if (data[i].energy) res.calories = parseInt(data[i].energy);
           if (data[i].distance) res.distance = parseInt(data[i].distance);
-          res.source = data[i].source
+          res.source = data[i].Source
           result.push(res);
         }
       }
@@ -321,9 +313,10 @@ exports.query = function (success, error, params) {
         res.type = camalize(opts.dataType);
         res.startDate = new Date(data[i].startDate);
         res.endDate = new Date(data[i].endDate);
+        res.source = data[i].Source
         switch (data[i].value) {
           case 0:
-            res.value = 'inBed';
+            res.value = 'in_bed';
             break;
           case 1:
           default:
@@ -333,17 +326,16 @@ exports.query = function (success, error, params) {
             res.value = 'awake';
             break;
           case 3:
-            res.value = 'light';
+            res.value = 'light_sleep';
             break;
           case 4:
-            res.value = 'deep';
+            res.value = 'deep_sleep';
             break;
           case 5:
-            res.value = 'rem';
+            res.value = 'rem_sleep';
             break;
         }
         res.unit = 'sleepType';
-        res.source = data[i].source
         result.push(res);
       }
       success(result);
@@ -371,6 +363,9 @@ exports.query = function (success, error, params) {
     opts.sampleType = dataTypes[opts.dataType];
     if (units[opts.dataType]) {
       opts.unit = units[opts.dataType];
+      if(opts.unit == "%"){
+        opts.unit = "percent"
+      }
     }
     querySampleType(function (data) {
       var result = [];
@@ -381,7 +376,7 @@ exports.query = function (success, error, params) {
           res.startDate = new Date(samples[i].startDate);
           res.endDate = new Date(samples[i].endDate);
           res.value = samples[i].value;
-          res.source = samples[i].source
+          res.source = samples[i].Source
 
           if (samples[i].unit) res.unit = samples[i].unit;
           else if (opts.unit) res.unit = opts.unit;

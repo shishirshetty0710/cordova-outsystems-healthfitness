@@ -10,10 +10,14 @@ private protocol PlatformProtocol {
 class OSHealthFitness: CDVPlugin {
     var plugin: HealthFitnessPlugin?
     var callbackIds:NSMutableDictionary?
+    var bgTask : UIBackgroundTaskIdentifier = UIBackgroundTaskIdentifier.invalid
+    var sharedSession:URLSession?
     
     override func pluginInitialize() {
         plugin = HealthFitnessPlugin()
         callbackIds = NSMutableDictionary()
+        
+        sharedSession = URLSession(configuration: URLSessionConfiguration.default)
     }
     
     @objc(requestPermissions:)
@@ -475,6 +479,41 @@ class OSHealthFitness: CDVPlugin {
         }
     }
     
+    func sendPostRequest(jsonItems:Data, task:Dictionary<String,AnyHashable>){
+        let defaults = UserDefaults.standard
+        
+        let url = defaults.string(forKey: "url")
+        
+        if url == nil {
+            return;
+        }
+        var urlRequest = URLRequest(url: URL(string: url!)!)
+        
+        urlRequest.httpMethod = "POST"
+        
+        let headers = defaults.array(forKey: "headers")
+        
+        for header in headers! {
+            let headerDic = header as! [String:Any]
+            urlRequest.setValue(headerDic["Value"] as! String, forHTTPHeaderField: headerDic["Key"] as! String)
+        }
+        
+        let urltask = sharedSession?.uploadTask(with: urlRequest, from: jsonItems, completionHandler: { data, response, error in
+            if (error != nil) {
+                return;
+            }
+            var tasks = UserDefaults.standard.array(forKey: "BackgroundTasks")
+            let index = tasks!.firstIndex { innerTask in
+                let innerTaskTemp = innerTask as! Dictionary<String,AnyHashable>
+                return task == innerTaskTemp
+            }
+            tasks!.remove(at: index!)
+            UserDefaults.standard.setValue(tasks, forKey: "BackgroundTasks")
+        })
+
+        urltask?.resume()
+    }
+    
     @objc(findWorkouts:)
     func findWorkouts(command: CDVInvokedUrlCommand){
         self.callbackIds!["findWorkouts"] = command.callbackId
@@ -485,12 +524,12 @@ class OSHealthFitness: CDVPlugin {
         let endDate = Date.init(timeIntervalSince1970: TimeInterval(endDateNumber!.intValue))
         
         let isTask:Bool? = args["task"] as? Bool
+        var task = Dictionary<String,AnyHashable>()
         if isTask != nil {
             var tasks = UserDefaults.standard.array(forKey: "BackgroundTasks")
-            let task = NSDictionary()
-            task.setValue(0, forKey: "function")
-            task.setValue(startDate, forKey: "startDate")
-            task.setValue(endDate, forKey: "endDate")
+            task["function"] = 0
+            task["startDate"] = startDate
+            task["endDate"] = endDate
             if tasks == nil {
                 tasks = Array()
             }
@@ -499,17 +538,26 @@ class OSHealthFitness: CDVPlugin {
             UserDefaults.standard.synchronize()
             
             self.commandDelegate.send(CDVPluginResult(status: CDVCommandStatus.ok, messageAs: []), callbackId: self.callbackIds!["findWorkouts"] as! String)
-            return;
         }
-        
-        findWorkouts(startDate: startDate, endDate: endDate) { workoutList,error in
-            var result:CDVPluginResult
-            if(error == nil){
-                result = CDVPluginResult(status: CDVCommandStatus.ok, messageAs: workoutList)
-            }else{
-                result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:error)
+        DispatchQueue.main.async {
+            self.findWorkouts(startDate: startDate, endDate: endDate) { workoutList,error in
+                if isTask != nil && error == nil {
+                    do{
+                        let json = try JSONSerialization.data(withJSONObject: workoutList!)
+                        self.sendPostRequest(jsonItems:json,task: task);
+                    }catch _{
+                        
+                    }
+                }else{
+                    var result:CDVPluginResult
+                    if(error == nil){
+                        result = CDVPluginResult(status: CDVCommandStatus.ok, messageAs: workoutList)
+                    }else{
+                        result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:error)
+                    }
+                    self.commandDelegate.send(result,callbackId: self.callbackIds!["findWorkouts"] as! String)
+                }
             }
-            self.commandDelegate.send(result,callbackId: self.callbackIds!["findWorkouts"] as! String)
         }
     }
 
@@ -526,14 +574,14 @@ class OSHealthFitness: CDVPlugin {
         let unitString:String? = args["unit"] as? String
         
         let isTask:Bool? = args["task"] as? Bool
+        var task = Dictionary<String,AnyHashable>()
         if isTask != nil {
             var tasks = UserDefaults.standard.array(forKey: "BackgroundTasks")
-            var task = NSMutableDictionary()
-            task.setValue(1, forKey: "function")
-            task.setValue(startDate, forKey: "startDate")
-            task.setValue(endDate, forKey: "endDate")
-            task.setValue(unitString, forKey: "unit")
-            task.setValue(sampleTypeString, forKey: "type")
+            task["function"] = 1
+            task["startDate"] = startDate
+            task["endDate"] = endDate
+            task["units"] = unitString
+            task["type"] = sampleTypeString
             if tasks == nil {
                 tasks = Array()
             }
@@ -542,17 +590,26 @@ class OSHealthFitness: CDVPlugin {
             UserDefaults.standard.synchronize()
             
             self.commandDelegate.send(CDVPluginResult(status: CDVCommandStatus.ok, messageAs: []), callbackId: self.callbackIds!["querySampleType"] as! String)
-            return;
         }
-        
-        querySampleType(sampleType: sampleTypeString, units: unitString, startDate: startDate, endDate: endDate) { samplesList, error in
-            var result:CDVPluginResult
-            if(error == nil){
-                result = CDVPluginResult(status: CDVCommandStatus.ok, messageAs: samplesList)
-            }else{
-                result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:error)
+        DispatchQueue.main.async {
+            self.querySampleType(sampleType: sampleTypeString, units: unitString, startDate: startDate, endDate: endDate) {samplesList, error in
+                if isTask != nil && error == nil {
+                    do{
+                        let json = try JSONSerialization.data(withJSONObject: samplesList!)
+                        self.sendPostRequest(jsonItems:json,task: task);
+                    }catch _{
+                        
+                    }
+                }else{
+                    var result:CDVPluginResult
+                    if(error == nil){
+                        result = CDVPluginResult(status: CDVCommandStatus.ok, messageAs: samplesList)
+                    }else{
+                        result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:error)
+                    }
+                    self.commandDelegate.send(result,callbackId: self.callbackIds!["querySampleType"] as! String)
+                }
             }
-            self.commandDelegate.send(result,callbackId: self.callbackIds!["querySampleType"] as! String)
         }
     }
     
@@ -569,14 +626,14 @@ class OSHealthFitness: CDVPlugin {
         let unitsString:[String] = args["units"] as! [String]
         
         let isTask:Bool? = args["task"] as? Bool
+        var task = Dictionary<String,AnyHashable>()
         if isTask != nil {
             var tasks = UserDefaults.standard.array(forKey: "BackgroundTasks")
-            let task = NSDictionary()
-            task.setValue(1, forKey: "function")
-            task.setValue(startDate, forKey: "startDate")
-            task.setValue(endDate, forKey: "endDate")
-            task.setValue(unitsString, forKey: "units")
-            task.setValue(correlationTypeString, forKey: "type")
+            task["function"] = 2
+            task["startDate"] = startDate
+            task["endDate"] = endDate
+            task["units"] = unitsString
+            task["type"] = correlationTypeString
             if tasks == nil {
                 tasks = Array()
             }
@@ -584,18 +641,29 @@ class OSHealthFitness: CDVPlugin {
             UserDefaults.standard.setValue(tasks, forKey: "BackgroundTasks")
             UserDefaults.standard.synchronize()
             
-            self.commandDelegate.send(CDVPluginResult(status: CDVCommandStatus.ok, messageAs: []), callbackId: self.callbackIds!["querySampleType"] as! String)
-            return;
+            self.commandDelegate.send(CDVPluginResult(status: CDVCommandStatus.ok, messageAs: []), callbackId: self.callbackIds!["queryCorrelationType"] as! String)
         }
-        queryCorrelationType(correlationTypeString: correlationTypeString, units: unitsString, startDate: startDate, endDate: endDate) {samplesList, error in
-            var result:CDVPluginResult
-            if(error == nil){
-                result = CDVPluginResult(status: CDVCommandStatus.ok, messageAs: samplesList)
-            }else{
-                result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:error)
+        DispatchQueue.main.async {
+            self.queryCorrelationType(correlationTypeString: correlationTypeString, units: unitsString[0], startDate: startDate, endDate: endDate) {samplesList, error in
+                if isTask != nil && error == nil {
+                    do{
+                        let json = try JSONSerialization.data(withJSONObject: samplesList!)
+                        self.sendPostRequest(jsonItems:json,task: task);
+                    }catch _{
+                        
+                    }
+                }else{
+                    var result:CDVPluginResult
+                    if(error == nil){
+                        result = CDVPluginResult(status: CDVCommandStatus.ok, messageAs: samplesList)
+                    }else{
+                        result = CDVPluginResult(status:CDVCommandStatus_ERROR, messageAs:error)
+                    }
+                    self.commandDelegate.send(result,callbackId: self.callbackIds!["queryCorrelationType"] as! String)
+                }
             }
-            self.commandDelegate.send(result,callbackId: self.callbackIds!["queryCorrelationType"] as! String)
         }
+        
     }
     
     @objc(findWorkouts:withEndDate:callbackFunction:)
@@ -603,11 +671,6 @@ class OSHealthFitness: CDVPlugin {
         
         let workoutPredicate:NSPredicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: HKQueryOptions.strictEndDate);
         
-        //let endDateSort = NSSortDescriptor.init(key: HKSampleSortIdentifierEndDate, ascending: false)
-        // TODO if a specific workouttype was passed, use that
-        //  if (false) {
-        //    workoutPredicate = [HKQuery predicateForWorkoutsWithWorkoutActivityType:HKWorkoutActivityTypeCycling];
-        //  }
         let types:Set<HKWorkoutType> = [HKWorkoutType.workoutType()]
         HKHealthStore().requestAuthorization(toShare: nil, read: types) { [weak self] success, olderror in
             guard let self = self else {return}
@@ -636,24 +699,32 @@ class OSHealthFitness: CDVPlugin {
                             // TODO: use a float value, or switch to metric
                             var miles = workout.totalDistance?.doubleValue(for: .meterUnit(with: .none))
                             if miles == nil {
-                                miles = 0
+                                miles = 0.0
                             }
+                            miles = round(miles!*100.0)/100.0
 
                             // Parse totalEnergyBurned in kilocalories
                             var calories = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie())
                             if calories == nil {
-                                calories = 0
+                                calories = 0.0
                             }
+                            calories = round(calories!*100.0)/100.0
                             
+                            let formatter = DateComponentsFormatter()
                             let entry = [
-                                "duration": workout.duration,
+                                "duration": formatter.string(from: workout.duration)!,
                                 "startDate": self.stringFromDate(date: workout.startDate),
                                 "endDate": self.stringFromDate(date: workout.endDate),
-                                "distance": miles,
-                                "energy": calories,
-                                "source": workout.sourceRevision.source.name+"-"+(workout.sourceRevision.productType ?? "IPhone"),
+                                "distance": miles!,
+                                "energy": calories!,
+                                "Source":[
+                                    "OS": "\(workout.sourceRevision.operatingSystemVersion.majorVersion).\(workout.sourceRevision.operatingSystemVersion.minorVersion).\(workout.sourceRevision.operatingSystemVersion.patchVersion)",
+                                    "Device": workout.sourceRevision.productType,
+                                    "BundleID": workout.sourceRevision.source.bundleIdentifier,
+                                    "Name": workout.sourceRevision.source.name
+                                ],
                                 "activityType": workoutActivity,
-                            ] as Dictionary
+                            ] as Dictionary<String,Any>
                             
                             finalResults.append(entry)
                         }
@@ -748,21 +819,17 @@ class OSHealthFitness: CDVPlugin {
 
                         for sample:HKSample in results! {
 
-                            let startSample = sample.startDate
-                            let endSample = sample.endDate
-                            var entry:Dictionary<String,Any> = Dictionary()
                             //NSMutableDictionary *entry = [NSMutableDictionary dictionary];
-
-                            // common indices
-                            entry["startDate"] = self.stringFromDate(date: startSample)
-                            entry["endDate"] = self.stringFromDate(date: endSample)
-                            entry["source"] = sample.sourceRevision.source.name+"-"+(sample.sourceRevision.productType ?? "IPhone")
-                            
-                            if sample.metadata == nil || JSONSerialization.isValidJSONObject(sample.metadata!) {
-                                entry["metadata"] = []
-                            } else {
-                                entry["metadata"] = sample.metadata
-                            }
+                            var entry = [
+                                "startDate": self.stringFromDate(date: sample.startDate),
+                                "endDate": self.stringFromDate(date: sample.endDate),
+                                "Source":[
+                                    "OS": "\(sample.sourceRevision.operatingSystemVersion.majorVersion).\(sample.sourceRevision.operatingSystemVersion.minorVersion).\(sample.sourceRevision.operatingSystemVersion.patchVersion)",
+                                    "Device": sample.sourceRevision.productType,
+                                    "BundleID": sample.sourceRevision.source.bundleIdentifier,
+                                    "Name": sample.sourceRevision.source.name
+                                ]
+                            ] as Dictionary
                             
                             // case-specific indices
                             if sample is HKCategorySample {
@@ -774,11 +841,14 @@ class OSHealthFitness: CDVPlugin {
                                 
                             }else if sample is HKQuantitySample {
                                 let qsample = sample as! HKQuantitySample
-                                entry["value"] = qsample.quantity.doubleValue(for: unit!)
+                                var quantity = qsample.quantity.doubleValue(for: unit!)
+                                quantity = round(quantity*100.0)/100.0
+                                entry["value"] = quantity
 
                             } else if sample is HKWorkout {
                                 let wsample = sample as! HKWorkout
-                                entry["value"] = wsample.duration
+                                let formatter = DateComponentsFormatter()
+                                entry["value"] = formatter.string(from: wsample.duration)!
                             }
                             
                             finalResults.append(entry)
@@ -794,7 +864,7 @@ class OSHealthFitness: CDVPlugin {
     }
     
     @objc(queryCorrelationType:withUnits:withStartDate:withEndDate:callbackFunction:)
-    func queryCorrelationType(correlationTypeString:String, units:[String], startDate:Date, endDate:Date, callbackFunction:@escaping(([Dictionary<String,Any>]?,String?) -> Void)){
+    func queryCorrelationType(correlationTypeString:String, units:String, startDate:Date, endDate:Date, callbackFunction:@escaping(([Dictionary<String,Any>]?,String?) -> Void)){
         
         let typeTemp = self.getHKSampleType(elem: correlationTypeString as NSString)
         if typeTemp.1 == nil {
@@ -803,11 +873,7 @@ class OSHealthFitness: CDVPlugin {
         }
         let type = typeTemp.1!
         
-        var unitsArray:[HKUnit?] = []
-        for unit:String? in units {
-            let unit = (unit != nil) ? HKUnit.init(from: unit!) : nil
-            unitsArray.append(unit)
-        }
+        let unit = (units != nil) ? HKUnit.init(from: units) : nil
 
         // TODO check that unit is compatible with sampleType if sample type of HKQuantityType
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: HKQueryOptions.strictEndDate)
@@ -827,46 +893,41 @@ class OSHealthFitness: CDVPlugin {
                 } else {
                     var finalResult:[Dictionary<String,Any>] = []
                     for corSample:HKSample in correlations! {
-                        let startSample = corSample.startDate
-                        let endSample = corSample.endDate
                         
-                        var entry:Dictionary<String,Any> = Dictionary()
+                        var entry = [
+                            "startDate": self.stringFromDate(date: corSample.startDate),
+                            "endDate": self.stringFromDate(date: corSample.endDate),
+                            "Source":[
+                                "OS": "\(corSample.sourceRevision.operatingSystemVersion.majorVersion).\(corSample.sourceRevision.operatingSystemVersion.minorVersion).\(corSample.sourceRevision.operatingSystemVersion.patchVersion)",
+                                "Device": corSample.sourceRevision.productType,
+                                "BundleID": corSample.sourceRevision.source.bundleIdentifier,
+                                "Name": corSample.sourceRevision.source.name
+                            ]
+                        ] as Dictionary
                         
-                        entry[ "startDate"] = self.stringFromDate(date: startSample)
-                        entry[ "endDate"] = self.stringFromDate(date: endSample)
-                        entry["source"] = corSample.sourceRevision.source.name+"-"+(corSample.sourceRevision.productType ?? "IPhone")
-                        
-                        if corSample is HKCategorySample {
-                            let csample = corSample as! HKCategorySample
-                            entry[ "value"] = csample.value
-                            entry[ "categoryType.identifier"] = csample.categoryType.identifier
-                            entry[ "categoryType.description"] = csample.categoryType.description
-                        }else if corSample is HKCorrelation{
+                        if corSample is HKCorrelation{
                             let correlation = corSample as! HKCorrelation
 
                             var samples:[Dictionary<String,Any>] = []
                             var sample:Dictionary<String,Any> = Dictionary()
                             guard let correlationObjs:Set<HKQuantitySample> = correlation.objects as? Set<HKQuantitySample> else { return }
                             for quantitySample:HKQuantitySample in correlationObjs {
-                                for (_,unit) in unitsArray.enumerated() {
-                                    if quantitySample.quantity.is(compatibleWith: unit!) {
-                                        sample["value"] = quantitySample.quantity.doubleValue(for: unit!)
-                                        sample["type"] = quantitySample.sampleType.identifier
-                                        samples.append(sample)
-                                        break;
-                                    }
+                                var quantity = quantitySample.quantity.doubleValue(for: unit!)
+                                quantity = round(quantity*100)/100
+                                if quantitySample.sampleType.identifier == "HKQuantityTypeIdentifierBloodPressureSystolic"  {
+                                    sample[""] = quantity
+                                }else{
+                                    sample[""] = quantity
                                 }
                             }
-                            entry["samples"] = samples
+                            entry["value"] = samples
                             
                         }else if corSample is HKQuantitySample {
                             let qsample = corSample as! HKQuantitySample
-                            for unit:HKUnit? in unitsArray {
-                                if qsample.quantity.is(compatibleWith: unit!) {
-                                    let quantity = qsample.quantity.doubleValue(for: unit!)
-                                    entry["value"] = String.init(format:"%f",quantity)
-                                    break;
-                                }
+                            if qsample.quantity.is(compatibleWith: unit!) {
+                                var quantity = qsample.quantity.doubleValue(for: unit!)
+                                quantity = round(quantity*100.0)/100.0
+                                entry["value"] = String.init(format:"%f",quantity)
                             }
                         }
                         finalResult.append(entry)

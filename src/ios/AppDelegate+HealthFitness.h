@@ -9,6 +9,7 @@
 
 #import "AppDelegate.h"
 #import <objc/runtime.h>
+#import <HealthKit/HealthKit.h>
 
 @interface AppDelegate (AppDelegateHealthFitness)<NSURLSessionTaskDelegate> {}
 
