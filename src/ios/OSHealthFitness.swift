@@ -898,7 +898,7 @@ class OSHealthFitness: CDVPlugin {
                         var entry = [
                             "startDate": self.stringFromDate(date: corSample.startDate),
                             "endDate": self.stringFromDate(date: corSample.endDate),
-                            "unit" : units,
+                            "unit" : "mmHg",
                             "Source":[
                                 "OS": "\(corSample.sourceRevision.operatingSystemVersion.majorVersion).\(corSample.sourceRevision.operatingSystemVersion.minorVersion).\(corSample.sourceRevision.operatingSystemVersion.patchVersion)",
                                 "Device": corSample.sourceRevision.productType,
