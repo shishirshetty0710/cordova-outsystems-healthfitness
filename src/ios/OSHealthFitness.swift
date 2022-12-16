@@ -898,7 +898,7 @@ class OSHealthFitness: CDVPlugin {
                         var entry = [
                             "startDate": self.stringFromDate(date: corSample.startDate),
                             "endDate": self.stringFromDate(date: corSample.endDate),
-                            "unit" : units,
+                            "unit" : units!,
                             "Source":[
                                 "OS": "\(corSample.sourceRevision.operatingSystemVersion.majorVersion).\(corSample.sourceRevision.operatingSystemVersion.minorVersion).\(corSample.sourceRevision.operatingSystemVersion.patchVersion)",
                                 "Device": corSample.sourceRevision.productType,
@@ -910,20 +910,18 @@ class OSHealthFitness: CDVPlugin {
                           if corSample is HKCorrelation{
                             let correlation = corSample as! HKCorrelation
 
-                            var samples:[Dictionary<String,Any>] = []
                             var sample:Dictionary<String,Any> = Dictionary()
                             guard let correlationObjs:Set<HKQuantitySample> = correlation.objects as? Set<HKQuantitySample> else { return }
                             for quantitySample:HKQuantitySample in correlationObjs {
                                 var quantity = quantitySample.quantity.doubleValue(for: unit!)
                                 quantity = round(quantity*100)/100
                                 if quantitySample.sampleType.identifier == "HKQuantityTypeIdentifierBloodPressureSystolic"  {
-                                    sample[""] = quantity
+                                    sample["systolic"] = quantity
                                 }else{
-                                    sample[""] = quantity
+                                    sample["diastolic"] = quantity
                                 }
-                                samples.append(sample)
                             }
-                            entry["value"] = samples
+                            entry["value"] = sample
                             
                         }else if corSample is HKQuantitySample {
                             let qsample = corSample as! HKQuantitySample
