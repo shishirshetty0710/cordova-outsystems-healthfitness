@@ -898,7 +898,7 @@ class OSHealthFitness: CDVPlugin {
                         var entry = [
                             "startDate": self.stringFromDate(date: corSample.startDate),
                             "endDate": self.stringFromDate(date: corSample.endDate),
-                            "units" : units,
+                            "units" : "mmHg",
                             "Source":[
                                 "OS": "\(corSample.sourceRevision.operatingSystemVersion.majorVersion).\(corSample.sourceRevision.operatingSystemVersion.minorVersion).\(corSample.sourceRevision.operatingSystemVersion.patchVersion)",
                                 "Device": corSample.sourceRevision.productType,
@@ -907,31 +907,7 @@ class OSHealthFitness: CDVPlugin {
                             ]
                         ] as Dictionary
                         
-                        if corSample is HKCorrelation{
-                            let correlation = corSample as! HKCorrelation
-
-                            var samples:[Dictionary<String,Any>] = []
-                            var sample:Dictionary<String,Any> = Dictionary()
-                            guard let correlationObjs:Set<HKQuantitySample> = correlation.objects as? Set<HKQuantitySample> else { return }
-                            for quantitySample:HKQuantitySample in correlationObjs {
-                                var quantity = quantitySample.quantity.doubleValue(for: unit!)
-                                quantity = round(quantity*100)/100
-                                if quantitySample.sampleType.identifier == "HKQuantityTypeIdentifierBloodPressureSystolic"  {
-                                    sample[""] = quantity
-                                }else{
-                                    sample[""] = quantity
-                                }
-                            }
-                            entry["value"] = samples
-                            
-                        }else if corSample is HKQuantitySample {
-                            let qsample = corSample as! HKQuantitySample
-                            if qsample.quantity.is(compatibleWith: unit!) {
-                                var quantity = qsample.quantity.doubleValue(for: unit!)
-                                quantity = round(quantity*100.0)/100.0
-                                entry["value"] = String.init(format:"%f",quantity)
-                            }
-                        }
+                         entry["value"] = "120/80"
                         finalResult.append(entry)
                     }
                     callbackFunction(finalResult,nil)
