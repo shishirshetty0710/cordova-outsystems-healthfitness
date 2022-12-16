@@ -823,7 +823,7 @@ class OSHealthFitness: CDVPlugin {
                             var entry = [
                                 "startDate": self.stringFromDate(date: sample.startDate),
                                 "endDate": self.stringFromDate(date: sample.endDate),
-                                "unit": units,
+                                "unit": units!,
                                 "Source":[
                                     "OS": "\(sample.sourceRevision.operatingSystemVersion.majorVersion).\(sample.sourceRevision.operatingSystemVersion.minorVersion).\(sample.sourceRevision.operatingSystemVersion.patchVersion)",
                                     "Device": sample.sourceRevision.productType,
@@ -898,7 +898,7 @@ class OSHealthFitness: CDVPlugin {
                         var entry = [
                             "startDate": self.stringFromDate(date: corSample.startDate),
                             "endDate": self.stringFromDate(date: corSample.endDate),
-                            "unit" : units!,
+                            "unit" : units,
                             "Source":[
                                 "OS": "\(corSample.sourceRevision.operatingSystemVersion.majorVersion).\(corSample.sourceRevision.operatingSystemVersion.minorVersion).\(corSample.sourceRevision.operatingSystemVersion.patchVersion)",
                                 "Device": corSample.sourceRevision.productType,
