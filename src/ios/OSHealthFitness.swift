@@ -596,7 +596,7 @@ class OSHealthFitness: CDVPlugin {
                 if isTask != nil && error == nil {
                     do{
                         let json = try JSONSerialization.data(withJSONObject: samplesList!)
-                        json = "{"+ "type:"+ sampleTypeString + "," +json + "}"
+                        json = "{" + "type:" + sampleTypeString + "," + json + "}"
                         self.sendPostRequest(jsonItems:json,task: task);
                     }catch _{
                         
@@ -649,7 +649,7 @@ class OSHealthFitness: CDVPlugin {
                 if isTask != nil && error == nil {
                     do{
                         let json = try JSONSerialization.data(withJSONObject: samplesList!)
-                        json = "{"+ "type:"+ correlationTypeString + "," +json + "}"
+                        json = "{" + "type:" + correlationTypeString + "," + json + "}"
                         self.sendPostRequest(jsonItems:json,task: task);
                     }catch _{
                         
