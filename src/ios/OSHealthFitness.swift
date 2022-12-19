@@ -595,8 +595,8 @@ class OSHealthFitness: CDVPlugin {
             self.querySampleType(sampleType: sampleTypeString, units: unitString, startDate: startDate, endDate: endDate) {samplesList, error in
                 if isTask != nil && error == nil {
                     do{
-                        let json = try JSONSerialization.data(withJSONObject: samplesList!)
-                        let json_str = String(decoding: json, as: UTF8.self)
+                        var json = try JSONSerialization.data(withJSONObject: samplesList!)
+                        var json_str = String(decoding: json, as: UTF8.self)
                         json_str = "{" + "type:" + sampleTypeString + "," + json_str + "}"
                         json = Data(json_str.utf8)
                         self.sendPostRequest(jsonItems:json,task: task);
@@ -650,8 +650,8 @@ class OSHealthFitness: CDVPlugin {
             self.queryCorrelationType(correlationTypeString: correlationTypeString, units: unitsString[0], startDate: startDate, endDate: endDate) {samplesList, error in
                 if isTask != nil && error == nil {
                     do{
-                        let json = try JSONSerialization.data(withJSONObject: samplesList!)
-                        let json_str = String(decoding: json, as: UTF8.self)
+                        var json = try JSONSerialization.data(withJSONObject: samplesList!)
+                        var json_str = String(decoding: json, as: UTF8.self)
                         json_str = "{" + "type:" + correlationTypeString + "," + json_str + "}"
                         json = Data(json_str.utf8)
                         self.sendPostRequest(jsonItems:json,task: task);
