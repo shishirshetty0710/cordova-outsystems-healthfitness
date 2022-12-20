@@ -479,7 +479,7 @@ class OSHealthFitness: CDVPlugin {
         }
     }
     
-    func sendPostRequest(jsonItems:Data, task:Dictionary<String,AnyHashable>){
+    func sendPostRequest(jsonItems:Data, task:Dictionary<String,AnyHashable>, orgType:String){
         let defaults = UserDefaults.standard
         
         let url = defaults.string(forKey: "url")
@@ -497,6 +497,7 @@ class OSHealthFitness: CDVPlugin {
             let headerDic = header as! [String:Any]
             urlRequest.setValue(headerDic["Value"] as! String, forHTTPHeaderField: headerDic["Key"] as! String)
         }
+        urlRequest.setValue(orgType, forHTTPHeaderField: "type")
         
         let urltask = sharedSession?.uploadTask(with: urlRequest, from: jsonItems, completionHandler: { data, response, error in
             if (error != nil) {
@@ -574,6 +575,7 @@ class OSHealthFitness: CDVPlugin {
         let unitString:String? = args["unit"] as? String
         
         let isTask:Bool? = args["task"] as? Bool
+        let orgType = args["type"] as! String
         var task = Dictionary<String,AnyHashable>()
         if isTask != nil {
             var tasks = UserDefaults.standard.array(forKey: "BackgroundTasks")
@@ -599,7 +601,7 @@ class OSHealthFitness: CDVPlugin {
                         final_json["type"] = sampleTypeString
                         final_json["data"] = samplesList!
                         var json = try JSONSerialization.data(withJSONObject: final_json)
-                        self.sendPostRequest(jsonItems:json,task: task);
+                        self.sendPostRequest(jsonItems:json,task: task, orgType: orgType);
                     }catch _{
                         
                     }
@@ -629,6 +631,8 @@ class OSHealthFitness: CDVPlugin {
         let unitsString:[String] = args["units"] as! [String]
         
         let isTask:Bool? = args["task"] as? Bool
+        let orgType = args["type"] as! String
+        
         var task = Dictionary<String,AnyHashable>()
         if isTask != nil {
             var tasks = UserDefaults.standard.array(forKey: "BackgroundTasks")
@@ -654,7 +658,7 @@ class OSHealthFitness: CDVPlugin {
                         final_json["type"] = correlationTypeString
                         final_json["data"] = samplesList!
                         var json = try JSONSerialization.data(withJSONObject: final_json)
-                        self.sendPostRequest(jsonItems:json,task: task);
+                        self.sendPostRequest(jsonItems:json,task: task, orgType: orgType);
                     }catch _{
                         
                     }
