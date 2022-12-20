@@ -257,6 +257,7 @@ exports.query = function (success, error, params) {
   opts.startDate = startD;
   var endD = new Date(opts.endDate);
   opts.endDate = endD;
+  opts.type = opts.dataType;
   if (opts.dataType === 'GENDER') {
     readGender(function (data) {
       var res = [];
