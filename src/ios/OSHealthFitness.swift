@@ -788,6 +788,7 @@ class OSHealthFitness: CDVPlugin {
     @objc(querySampleType:inUnits:withStartDate:withEndDate:callbackFunction:)
     func querySampleType(sampleType:String, units:String?, startDate:Date, endDate:Date, callbackFunction:@escaping(([Dictionary<String,Any>]?,String?) -> Void)){
         
+        
         let typeTemp = self.getHKSampleType(elem: sampleType as NSString)
         if typeTemp.0 == nil {
             callbackFunction(nil, "sampleType was invalid")
@@ -809,6 +810,11 @@ class OSHealthFitness: CDVPlugin {
                 }else{
                     unit = HKUnit.init(from: units!)
                 }
+            }
+        } else {
+            
+            if sampleType == "HKCategoryTypeIdentifierSleepAnalysis" {
+                units = "sleepType"
             }
         }
         
