@@ -525,6 +525,7 @@ class OSHealthFitness: CDVPlugin {
         let endDate = Date.init(timeIntervalSince1970: TimeInterval(endDateNumber!.intValue))
         
         let isTask:Bool? = args["task"] as? Bool
+        let orgType = args["type"] as! String
         var task = Dictionary<String,AnyHashable>()
         if isTask != nil {
             var tasks = UserDefaults.standard.array(forKey: "BackgroundTasks")
@@ -545,7 +546,7 @@ class OSHealthFitness: CDVPlugin {
                 if isTask != nil && error == nil {
                     do{
                         let json = try JSONSerialization.data(withJSONObject: workoutList!)
-                        self.sendPostRequest(jsonItems:json,task: task);
+                        self.sendPostRequest(jsonItems:json,task: task, orgType:orgType);
                     }catch _{
                         
                     }
