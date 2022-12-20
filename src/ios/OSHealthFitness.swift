@@ -811,11 +811,6 @@ class OSHealthFitness: CDVPlugin {
                     unit = HKUnit.init(from: units!)
                 }
             }
-        } else {
-            
-            if sampleType == "HKCategoryTypeIdentifierSleepAnalysis" {
-                units = "sleepType"
-            }
         }
         
         // TODO check that unit is compatible with sampleType if sample type of HKQuantityType
@@ -840,7 +835,7 @@ class OSHealthFitness: CDVPlugin {
                             var entry = [
                                 "startDate": self.stringFromDate(date: sample.startDate),
                                 "endDate": self.stringFromDate(date: sample.endDate),
-                                "unit": units!,
+                                "unit": (units != nil) ? units! : ((sampleType == "HKCategoryTypeIdentifierSleepAnalysis") ? "sleepType" : ""),
                                 "Source":[
                                     "OS": "\(sample.sourceRevision.operatingSystemVersion.majorVersion).\(sample.sourceRevision.operatingSystemVersion.minorVersion).\(sample.sourceRevision.operatingSystemVersion.patchVersion)",
                                     "Device": sample.sourceRevision.productType,
