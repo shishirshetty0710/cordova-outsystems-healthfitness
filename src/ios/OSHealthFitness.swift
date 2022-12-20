@@ -595,10 +595,10 @@ class OSHealthFitness: CDVPlugin {
             self.querySampleType(sampleType: sampleTypeString, units: unitString, startDate: startDate, endDate: endDate) {samplesList, error in
                 if isTask != nil && error == nil {
                     do{
-                        var json = try JSONSerialization.data(withJSONObject: samplesList!)
-                        var json_str = String(decoding: json, as: UTF8.self)
-                        json_str = "{" + "type:" + sampleTypeString + "," + json_str + "}"
-                        json = Data(json_str.utf8)
+                        var final_json:Dictionary<String,Any> = Dictionary()
+                        final_json["type"] = sampleTypeString
+                        final_json["data"] = samplesList!
+                        var json = try JSONSerialization.data(withJSONObject: final_json)
                         self.sendPostRequest(jsonItems:json,task: task);
                     }catch _{
                         
@@ -650,10 +650,10 @@ class OSHealthFitness: CDVPlugin {
             self.queryCorrelationType(correlationTypeString: correlationTypeString, units: unitsString[0], startDate: startDate, endDate: endDate) {samplesList, error in
                 if isTask != nil && error == nil {
                     do{
-                        var json = try JSONSerialization.data(withJSONObject: samplesList!)
-                        var json_str = String(decoding: json, as: UTF8.self)
-                        json_str = "{" + "type:" + correlationTypeString + "," + json_str + "}"
-                        json = Data(json_str.utf8)
+                        var final_json:Dictionary<String,Any> = Dictionary()
+                        final_json["type"] = correlationTypeString
+                        final_json["data"] = samplesList!
+                        var json = try JSONSerialization.data(withJSONObject: final_json)
                         self.sendPostRequest(jsonItems:json,task: task);
                     }catch _{
                         
