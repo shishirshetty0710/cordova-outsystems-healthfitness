@@ -880,7 +880,7 @@ class OSHealthFitness: CDVPlugin {
                                 var quantity = qsample.quantity.doubleValue(for: unit!)
                                 //quantity = round(quantity*100.0)/100.0
                                 let roundOff = round(quantity * 100) / 100.0
-                                let roundoff_str: String = String(format: "%f", roundOff)
+                                let roundoff_str: String = String(format: "%.2f", roundOff)
                                 entry["value"] = roundoff_str
 
                             } else if sample is HKWorkout {
