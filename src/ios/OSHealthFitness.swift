@@ -847,10 +847,29 @@ class OSHealthFitness: CDVPlugin {
                             // case-specific indices
                             if sample is HKCategorySample {
                                 let csample = sample as! HKCategorySample
-                                entry["value"] = csample.value
+                                
                                 if sampleType == "HKCategoryTypeIdentifierSleepAnalysis" {
-                                   let sleep_value = (csample.value == HKCategoryValueSleepAnalysis.InBed.rawValue) ? "InBed" : "Asleep"
-                                   entry["value"] = sleep_value
+                                    
+                                    switch csample.value {
+                                         
+                                        case 0:
+                                            entry["value"] = "in_bed"
+                                        case 1:
+                                             entry["value"] = "sleep"
+                                        case 2:
+                                             entry["value"] = "awake"
+                                        case 3:
+                                             entry["value"] = "light_sleep"
+                                        case 4:
+                                              entry["value"] = "deep_sleep"
+                                        case 5:
+                                              entry["value"] = "rem_sleep"
+                                        default:
+                                              entry["value"] = csample.value
+                                    }
+                                    
+                                } else {
+                                    entry["value"] = csample.value
                                 }
                             }else if sample is HKCorrelation{
                                 let correlation = sample as! HKCorrelation
