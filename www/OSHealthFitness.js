@@ -404,7 +404,9 @@ exports.query = function (success, error, params) {
           // success(result);
         // }, error, opts);
       // } 
-	   // else success(result);
+	   // else 
+	    success(result);
+	    
     }, error, opts); // first call to querySampleType
   } else {
     error('unknown data type ' + opts.dataType);
