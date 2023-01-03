@@ -385,24 +385,26 @@ exports.query = function (success, error, params) {
         }
       };
       convertSamples(data);
-      if (opts.dataType === 'DISTANCE') { // in the case of the distance, add the cycling distances
-        opts.sampleType = 'HKQuantityTypeIdentifierDistanceCycling';
-        // re-assign start and end times (because the plugin modifies them later)
-        opts.startDate = startD;
-        opts.endDate = endD;
-        querySampleType(function (data) {
-          convertSamples(data);
-          success(result);
-        }, error, opts);
-      } else if (opts.dataType === 'CALORIES_BURNED') { // in the case of the calories, add the basal
-        opts.sampleType = 'HKQuantityTypeIdentifierBasalEnergyBurned';
-        opts.startDate = startD;
-        opts.endDate = endD;
-        querySampleType(function (data) {
-          convertSamples(data);
-          success(result);
-        }, error, opts);
-      } else success(result);
+      // if (opts.dataType === 'DISTANCE') { // in the case of the distance, add the cycling distances
+        // opts.sampleType = 'HKQuantityTypeIdentifierDistanceCycling';
+        //re-assign start and end times (because the plugin modifies them later)
+        // opts.startDate = startD;
+        // opts.endDate = endD;
+        // querySampleType(function (data) {
+          // convertSamples(data);
+          // success(result);
+        // }, error, opts);
+      // } 
+	    // else if (opts.dataType === 'CALORIES_BURNED') { // in the case of the calories, add the basal
+        // opts.sampleType = 'HKQuantityTypeIdentifierBasalEnergyBurned';
+        // opts.startDate = startD;
+        // opts.endDate = endD;
+        // querySampleType(function (data) {
+          // convertSamples(data);
+          // success(result);
+        // }, error, opts);
+      // } 
+	   // else success(result);
     }, error, opts); // first call to querySampleType
   } else {
     error('unknown data type ' + opts.dataType);
