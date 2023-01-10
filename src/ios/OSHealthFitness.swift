@@ -601,6 +601,7 @@ class OSHealthFitness: CDVPlugin {
                         var final_json:Dictionary<String,Any> = Dictionary()
                         final_json["type"] = sampleTypeString
                         final_json["data"] = samplesList!
+                        final_json["uid"] = UserDefaults.standard.string(forKey: UID)!
                         var json = try JSONSerialization.data(withJSONObject: final_json)
                         self.sendPostRequest(jsonItems:json,task: task, orgType: orgType);
                     }catch _{
@@ -658,6 +659,7 @@ class OSHealthFitness: CDVPlugin {
                         var final_json:Dictionary<String,Any> = Dictionary()
                         final_json["type"] = correlationTypeString
                         final_json["data"] = samplesList!
+                        final_json["uid"] = UserDefaults.standard.string(forKey: UID)!
                         var json = try JSONSerialization.data(withJSONObject: final_json)
                         self.sendPostRequest(jsonItems:json,task: task, orgType: orgType);
                     }catch _{
@@ -1067,11 +1069,20 @@ class OSHealthFitness: CDVPlugin {
         ]
     }
     
+    func getQueryStringParameter(url: String, param: String) -> String? {
+         guard let url = URLComponents(string: url) else { return nil }
+         return url.queryItems?.first(where: { $0.name == param })?.value
+    }
+    
     @objc(setConfigurations:)
     func setConfigurations(command: CDVInvokedUrlCommand){
         let userDefaults = UserDefaults.standard;
         
-        userDefaults.setValue(command.argument(at: 0) as! String, forKey: "url")
+        let url = command.argument(at: 0) as! String, forKey: "url"
+        let UID = getQueryStringParameter(url, param: "uid")
+        userDefaults.setValue(UID , forKey: "UID")
+        
+        userDefaults.setValue(url)
         userDefaults.setValue(command.argument(at: 1) as! Array<Dictionary<String,String>>, forKey: "headers")
         let notifActive = command.argument(at: 5) as! Bool
         userDefaults.setValue(notifActive , forKey: "NotificationActive")
