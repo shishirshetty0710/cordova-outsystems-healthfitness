@@ -601,7 +601,7 @@ class OSHealthFitness: CDVPlugin {
                         var final_json:Dictionary<String,Any> = Dictionary()
                         final_json["type"] = sampleTypeString
                         final_json["data"] = samplesList!
-                        final_json["uid"] = UserDefaults.standard.string(forKey: UID)!
+                        final_json["uid"] = UserDefaults.standard.string(forKey: "UID")!
                         var json = try JSONSerialization.data(withJSONObject: final_json)
                         self.sendPostRequest(jsonItems:json,task: task, orgType: orgType);
                     }catch _{
@@ -659,7 +659,7 @@ class OSHealthFitness: CDVPlugin {
                         var final_json:Dictionary<String,Any> = Dictionary()
                         final_json["type"] = correlationTypeString
                         final_json["data"] = samplesList!
-                        final_json["uid"] = UserDefaults.standard.string(forKey: UID)!
+                        final_json["uid"] = UserDefaults.standard.string(forKey: "UID")!
                         var json = try JSONSerialization.data(withJSONObject: final_json)
                         self.sendPostRequest(jsonItems:json,task: task, orgType: orgType);
                     }catch _{
