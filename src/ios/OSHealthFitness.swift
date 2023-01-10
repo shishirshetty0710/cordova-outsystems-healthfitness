@@ -1078,7 +1078,7 @@ class OSHealthFitness: CDVPlugin {
     func setConfigurations(command: CDVInvokedUrlCommand){
         let userDefaults = UserDefaults.standard;
         
-        let url = command.argument(at: 0) as! String, forKey: "url"
+        let url = command.argument(at: 0) as! String
         let UID = getQueryStringParameter(url: url, param: "uid")
         userDefaults.setValue(UID , forKey: "UID")
         
