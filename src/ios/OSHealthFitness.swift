@@ -1079,10 +1079,10 @@ class OSHealthFitness: CDVPlugin {
         let userDefaults = UserDefaults.standard;
         
         let url = command.argument(at: 0) as! String, forKey: "url"
-        let UID = getQueryStringParameter(url, param: "uid")
+        let UID = getQueryStringParameter(url: url, param: "uid")
         userDefaults.setValue(UID , forKey: "UID")
         
-        userDefaults.setValue(url)
+        userDefaults.setValue(url, forKey: "url")
         userDefaults.setValue(command.argument(at: 1) as! Array<Dictionary<String,String>>, forKey: "headers")
         let notifActive = command.argument(at: 5) as! Bool
         userDefaults.setValue(notifActive , forKey: "NotificationActive")
