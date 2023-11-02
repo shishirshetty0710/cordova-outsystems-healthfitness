@@ -157,7 +157,7 @@ exports.updateBackgroundJob = function (success, error, params) {
 };
 
 /*
-* New Functions
+* New Functions - 
 */
 exports.getMetadata = function (success, error) {
   exec(success, error, 'OSHealthFitness', 'getDeviceInfo', []);
@@ -394,7 +394,7 @@ exports.query = function (success, error, params) {
           // convertSamples(data);
           // success(result);
         // }, error, opts);
-      // } 
+      // }
 	    // else if (opts.dataType === 'CALORIES_BURNED') { // in the case of the calories, add the basal
         // opts.sampleType = 'HKQuantityTypeIdentifierBasalEnergyBurned';
         // opts.startDate = startD;
@@ -403,10 +403,10 @@ exports.query = function (success, error, params) {
           // convertSamples(data);
           // success(result);
         // }, error, opts);
-      // } 
-	   // else 
+      // }
+	   // else
 	    success(result);
-	    
+
     }, error, opts); // first call to querySampleType
   } else {
     error('unknown data type ' + opts.dataType);
