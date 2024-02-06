@@ -40,7 +40,7 @@
 			<feature name="OSHealthFitness">
 				<param name="ios-package" value="OSHealthFitness" />
 			</feature>
-			<preference name="deployment-target" value="12" />
+			<preference name="deployment-target" value="13" />
       <preference name="UseSwiftLanguageVersion" value="5" />
 		</config-file>
 
